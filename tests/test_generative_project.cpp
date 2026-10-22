@@ -1,5 +1,6 @@
 #include "genome/genome_bootstrap.hpp"
 #include "gpi/autonomous_project_developer.hpp"
+#include "gpi/project_blueprint.hpp"
 #include "gpi/generative_project.hpp"
 #include "gpi/project_manifest.hpp"
 #include "gpi/project_verifier.hpp"
@@ -43,6 +44,37 @@ int main(int argc,char** argv) {
         bool escapeRejected=false;try {static_cast<void>(loadProjectManifest(escapeManifest,manifestRoot,
             Cpp20SourceGenome::fromGenome(*system.strand)));}catch(const std::invalid_argument&){escapeRejected=true;}
         if(!escapeRejected)return 18;
+        const auto blueprintInput=manifestRoot/"blueprint";std::filesystem::create_directories(blueprintInput/"fixtures");
+        {std::ofstream file(blueprintInput/"fixtures/expected.txt",std::ios::binary);file<<"55\n";}
+        const auto blueprintPath=blueprintInput/"project.blueprint";
+        {std::ofstream file(blueprintPath,std::ios::binary);file<<
+            "GPI_PROJECT_BLUEPRINT_V1\n"
+            "project\tfibonacci_blueprint\n"
+            "namespace\tgenerated\n"
+            "function\tfibonacci\tlong long\tn < 2 ? n : fibonacci(n - 1) + fibonacci(n - 2)\n"
+            "parameter\tfibonacci\tint\tn\n"
+            "entry\tlong long\tfibonacci(10)\n"
+            "test\tbase_zero\tfibonacci(0) == 0\n"
+            "test\tbase_one\tfibonacci(1) == 1\n"
+            "test\trecursive_ten\tfibonacci(10) == 55\n"
+            "expected-output\tfixtures/expected.txt\nexpected-error\t-\ninput\t-\nexpected-exit\t0\n"
+            "timeout-seconds\t20\nrequire-sandbox\t"<<(argc==4?"true":"false")<<"\n";}
+        auto synthesized=synthesizeProjectBlueprint(loadProjectBlueprint(blueprintPath),
+            Cpp20SourceGenome::fromGenome(*system.strand));
+        if(synthesized.graph.nodes().size()!=5||synthesized.graph.targets().size()!=3||
+           synthesized.contract.behaviors.size()!=2)return 23;
+        const auto blueprintOutput=std::filesystem::path(root.string()+"_blueprint");
+        std::filesystem::remove_all(blueprintOutput,error);
+        const auto blueprintEvidence=verifyGenerativeProject(synthesized.graph,synthesized.contract,
+            blueprintOutput,compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+        if(!blueprintEvidence.success||blueprintEvidence.checks.size()!=5)return 24;
+        const auto unsafeBlueprint=blueprintInput/"unsafe.blueprint";
+        {std::ofstream file(unsafeBlueprint,std::ios::binary);file<<
+            "GPI_PROJECT_BLUEPRINT_V1\nproject\tunsafe\nnamespace\tgenerated\n"
+            "function\tf\tint\t0; dangerous()\nentry\tint\tf()\ntest\tcheck\tf()==0\n";}
+        bool statementRejected=false;try {static_cast<void>(loadProjectBlueprint(unsafeBlueprint));}
+        catch(const std::invalid_argument&){statementRejected=true;}
+        if(!statementRejected)return 25;
         const auto makeGraph=[&](const std::string& argument,bool includeIostream=true,
                                  bool includeApplicationLink=true,const std::string& testExpected="18") {
             GenerativeProjectGraph graph(Cpp20SourceGenome::fromGenome(*system.strand));

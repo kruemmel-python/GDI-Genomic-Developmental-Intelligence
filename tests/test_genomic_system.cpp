@@ -224,6 +224,9 @@ void test_universal_cpp20_source_space_is_lossless_and_genomic() {
     TEST_ASSERT(sourceGenome.mutationEnabled("coerce-numeric-string-literal"),"Literal type coercion must be genomically authorized");
     TEST_ASSERT(sourceGenome.mutationEnabled("local-integer-neighborhood"),"Local test-guided search must be genomically authorized");
     TEST_ASSERT(!sourceGenome.mutationEnabled("arbitrary-host-edit"),"Unknown host edits must not be genomically authorized");
+    TEST_ASSERT(sourceGenome.structureEnabled("typed-functions"),"Typed function synthesis must be genomically authorized");
+    TEST_ASSERT(sourceGenome.structureEnabled("header-source-executable-test"),"Multi-file project synthesis must be genomically authorized");
+    TEST_ASSERT(!sourceGenome.structureEnabled("arbitrary-host-project"),"Unknown project structures must not be authorized");
     const auto headers=sourceGenome.suggestedHeaders("error: std::cout is unavailable and vector was not declared");
     TEST_ASSERT(std::find(headers.begin(),headers.end(),"iostream")!=headers.end(),"Compiler symbol must activate genomic iostream rule");
     TEST_ASSERT(std::find(headers.begin(),headers.end(),"vector")!=headers.end(),"Compiler symbol must activate genomic vector rule");

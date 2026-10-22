@@ -50,6 +50,7 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
     const std::string sourceSpace="format=cpp20-source-space-v1;encoding=all-octets;"
         "unit=relative-path+exact-source;integrity=fnv1a64;provenance=genome-hash+region-id;"
         "edit-operators=token-integer-delta,empirical-numeric-calibration,insert-standard-header,infer-link-provider,coerce-numeric-string-literal,local-integer-neighborhood;"
+        "project-structures=typed-functions,header-source-executable-test,independent-behavior-tests;"
         "header-symbols=cout@iostream,cin@iostream,cerr@iostream,vector@vector,string@string,sort@algorithm,"
         "unordered_map@unordered_map,unordered_set@unordered_set,priority_queue@queue,setprecision@iomanip,"
         "isfinite@cmath,fmod@cmath,optional@optional,tuple@tuple;"

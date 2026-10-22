@@ -41,6 +41,7 @@ public:
     GenomeRegionId ruleRegion() const noexcept { return ruleRegion_; }
     const std::string& format() const noexcept { return format_; }
     bool mutationEnabled(std::string_view operation) const;
+    bool structureEnabled(std::string_view structure) const;
     std::vector<std::string> suggestedHeaders(std::string_view compilerDiagnostic) const;
 
 private:
@@ -48,6 +49,7 @@ private:
     GenomeRegionId ruleRegion_{0};
     std::string format_;
     std::unordered_set<std::string> mutationOperators_;
+    std::unordered_set<std::string> projectStructures_;
     std::unordered_map<std::string,std::string> symbolHeaders_;
 };
 

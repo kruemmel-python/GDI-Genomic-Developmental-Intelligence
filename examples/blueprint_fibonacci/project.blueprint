@@ -1,0 +1,15 @@
+GPI_PROJECT_BLUEPRINT_V1
+project	fibonacci_blueprint
+namespace	generated
+function	fibonacci	long long	n < 2 ? n : fibonacci(n - 1) + fibonacci(n - 2)
+parameter	fibonacci	int	n
+entry	long long	fibonacci(10)
+test	base_zero	fibonacci(0) == 0
+test	base_one	fibonacci(1) == 1
+test	recursive_ten	fibonacci(10) == 55
+expected-output	fixtures/expected.txt
+expected-error	-
+input	-
+expected-exit	0
+timeout-seconds	20
+require-sandbox	true

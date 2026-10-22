@@ -12,6 +12,7 @@ Das Repository enthält den reinen Projektquellcode. Der verwendete C++20-Compil
 - Es modelliert Analyse, Synthese und Forschung als logisch getrennte Kompartimente über demselben eingefrorenen Genom.
 - Es repräsentiert beliebige C++20-Quelldateien bytegenau als genomisch hergeleitete Artefakte.
 - Es verarbeitet allgemeine mehrdateiige Projektgraphen mit Headern, Quellen, Modulen, Tests, Ressourcen, Build-Manifesten, Abhängigkeiten und Targets.
+- Es synthetisiert aus typisierten Projekt-Blueprints neue Header-, Implementierungs-, Anwendungs- und Teststrukturen, ohne fertige C++-Quelldateien als Eingabe zu verlangen.
 - Es kompiliert, linkt und prüft erzeugte Programme gegen unabhängige Ein-/Ausgabe- und Exit-Code-Verträge.
 - Es kann belegte Fehlerklassen genomisch autorisiert reparieren, darunter fehlende Standard-Header, fehlende Link-Abhängigkeiten sowie bestimmte Typ- und Zahlenfehler. Nachweislich fortgeschrittene Zwischenstände bleiben über mehrere Entwicklungszyklen erhalten.
 - Es speichert ausschließlich vollständig verifizierte Transformationsgruppen atomar in einem verketteten Erfahrungsspeicher und prüft sie bei Transferaufgaben erneut.
@@ -63,6 +64,22 @@ Die Oberfläche gibt nur den sicheren typisierten Aufgabenmodus frei. Freier ein
 
 Der Beispielquelltext enthält absichtlich einen fehlenden Standard-Header. GDI muss die Ausgangsversion zunächst ablehnen, die Reparatur aus Compiler-Evidenz und genomischen Regeln ableiten und das Ergebnis anschließend unabhängig in der Sandbox bestätigen.
 
+## Neue Projekte aus einem Blueprint synthetisieren
+
+`gpi_synthesize` liest typisierte Funktionssignaturen, Parameter, Ausdrücke, Einstiegspunkt und unabhängige Tests. Genomische Strukturregeln autorisieren daraus die Erzeugung eines vollständigen Mehrdatei-Projektgraphen. Eine Sandbox ist für diese CLI verpflichtend.
+
+```powershell
+.\build\gpi_synthesize.exe `
+  --blueprint .\examples\blueprint_fibonacci\project.blueprint `
+  --workspace .\generated\fibonacci_run `
+  --compiler "F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe" `
+  --sandbox .\build\gpi_sandbox.exe `
+  --memory .\generated\blueprint.memory `
+  --cycles 8
+```
+
+Das Beispiel beschreibt nur eine rekursive Fibonacci-Funktion, ihren Einstieg und drei semantische Tests. GDI erzeugt daraus Header, Implementierung, ausführbare Anwendung, Testprogramm und Buildmanifest. Der externe Compiler und die Sandbox-Verhaltensverträge prüfen das Ergebnis.
+
 ## Zentrale Programme
 
 | Programm | Aufgabe |
@@ -70,6 +87,7 @@ Der Beispielquelltext enthält absichtlich einen fehlenden Standard-Header. GDI 
 | `gpi_gui` | native Windows-Oberfläche für sichere typisierte Entwicklung |
 | `gpi_integrated` | Zielvertrag, Kompartimente, Forschung und A–D-Architekturvergleich |
 | `gpi_develop` | allgemeine manifestbasierte Mehrdatei-Projekte, Reparatur und Erfahrungstransfer |
+| `gpi_synthesize` | genomisch autorisierte Mehrdatei-Projektsynthese aus typisierten Blueprints |
 | `gpi_research` | begrenzte Hypothesen-/Experimentzyklen mit Evidenz |
 | `gpi_project` | natürlichsprachlich erzeugte Mehrdatei-Projekte im typisierten Aufgabenraum |
 | `gpi_agent` | typisierte Ausdruckssynthese mit Compiler-/Verhaltensprüfung |
