@@ -2,6 +2,7 @@
 #include "gpi/autonomous_project_developer.hpp"
 #include "gpi/project_blueprint.hpp"
 #include "gpi/generative_project.hpp"
+#include "gpi/goal_architect.hpp"
 #include "gpi/project_manifest.hpp"
 #include "gpi/project_verifier.hpp"
 
@@ -68,6 +69,59 @@ int main(int argc,char** argv) {
         const auto blueprintEvidence=verifyGenerativeProject(synthesized.graph,synthesized.contract,
             blueprintOutput,compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
         if(!blueprintEvidence.success||blueprintEvidence.checks.size()!=5)return 24;
+        const auto goalPath=blueprintInput/"factorial.goal";
+        {std::ofstream file(goalPath,std::ios::binary);file<<
+            "GPI_TYPED_ARCHITECTURE_GOAL_V1\nproject\ttyped_factorial\nnamespace\tgenerated\n"
+            "function\tfactorial\tlong long\nparameter\tfactorial\tint\tn\n"
+            "operation\tfactorial\tbase\tless-equal\tn\t#1\n"
+            "operation\tfactorial\tprevious\tsubtract\tn\t#1\n"
+            "operation\tfactorial\trecursive\tcall:factorial\tprevious\n"
+            "operation\tfactorial\tproduct\tmultiply\tn\trecursive\n"
+            "operation\tfactorial\tresult\tselect\tbase\t#1\tproduct\n"
+            "return\tfactorial\tresult\nentry\tfactorial\t#720\t#6\n"
+            "case\tzero\tfactorial\t#1\t#0\ncase\tone\tfactorial\t#1\t#1\n"
+            "case\tfive\tfactorial\t#120\t#5\ntimeout-seconds\t20\nrequire-sandbox\t"
+            <<(argc==4?"true":"false")<<"\n";}
+        auto architected=architectTypedGoal(loadTypedArchitectureGoal(goalPath),
+            Cpp20SourceGenome::fromGenome(*system.strand));
+        if(architected.blueprint.functions.size()!=1||architected.blueprint.tests.size()!=3||
+           architected.blueprint.entryExpression!="factorial(6)"||architected.blueprint.expectedOutput!="720\n"||
+           architected.goalHash==0||architected.architectureReport.find("\"operations\": 5")==std::string::npos)return 26;
+        const auto architectureOutput=std::filesystem::path(root.string()+"_architecture");
+        std::filesystem::remove_all(architectureOutput,error);
+        const auto architectureEvidence=verifyGenerativeProject(architected.project.graph,architected.project.contract,
+            architectureOutput,compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+        if(!architectureEvidence.success||architectureEvidence.checks.size()!=5)return 27;
+        const auto multiGoalPath=blueprintInput/"multi.goal";
+        {std::ofstream file(multiGoalPath,std::ios::binary);file<<
+            "GPI_TYPED_ARCHITECTURE_GOAL_V1\nproject\ttyped_components\nnamespace\tgenerated\n"
+            "function\tsquare\tlong long\nparameter\tsquare\tlong long\tx\n"
+            "operation\tsquare\tproduct\tmultiply\tx\tx\nreturn\tsquare\tproduct\n"
+            "function\tsum_squares\tlong long\nparameter\tsum_squares\tlong long\ta\n"
+            "parameter\tsum_squares\tlong long\tb\noperation\tsum_squares\tleft\tcall:square\ta\n"
+            "operation\tsum_squares\tright\tcall:square\tb\noperation\tsum_squares\ttotal\tadd\tleft\tright\n"
+            "return\tsum_squares\ttotal\nentry\tsum_squares\t#25\t#3\t#4\n"
+            "case\tsquare_three\tsquare\t#9\t#3\ncase\tpythagorean\tsum_squares\t#25\t#3\t#4\n"
+            "timeout-seconds\t20\nrequire-sandbox\t"<<(argc==4?"true":"false")<<"\n";}
+        auto multi=architectTypedGoal(loadTypedArchitectureGoal(multiGoalPath),Cpp20SourceGenome::fromGenome(*system.strand));
+        if(multi.blueprint.functions.size()!=2||multi.blueprint.tests.size()!=2||
+           multi.architectureReport.find("\"dependencies\": [\"square\"]")==std::string::npos)return 29;
+        const auto multiOutput=std::filesystem::path(root.string()+"_architecture_multi");
+        std::filesystem::remove_all(multiOutput,error);
+        const auto multiEvidence=verifyGenerativeProject(multi.project.graph,multi.project.contract,multiOutput,
+            compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+        if(!multiEvidence.success||multiEvidence.checks.size()!=5)return 30;
+        auto cyclicGoal=loadTypedArchitectureGoal(goalPath);
+        cyclicGoal.functions.front().operations.front().operands.front()="result";
+        bool cycleRejected=false;try {static_cast<void>(architectTypedGoal(cyclicGoal,Cpp20SourceGenome::fromGenome(*system.strand)));}
+        catch(const std::invalid_argument&){cycleRejected=true;}
+        if(!cycleRejected)return 28;
+        auto contradictoryGoal=loadTypedArchitectureGoal(goalPath);
+        contradictoryGoal.cases.push_back({"wrong_six","factorial","#721",{"#6"}});
+        bool contradictionRejected=false;
+        try {static_cast<void>(architectTypedGoal(contradictoryGoal,Cpp20SourceGenome::fromGenome(*system.strand)));}
+        catch(const std::invalid_argument&){contradictionRejected=true;}
+        if(!contradictionRejected)return 31;
         const auto unsafeBlueprint=blueprintInput/"unsafe.blueprint";
         {std::ofstream file(unsafeBlueprint,std::ios::binary);file<<
             "GPI_PROJECT_BLUEPRINT_V1\nproject\tunsafe\nnamespace\tgenerated\n"

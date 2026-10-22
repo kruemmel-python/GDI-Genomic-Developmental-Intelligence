@@ -1,0 +1,19 @@
+GPI_TYPED_ARCHITECTURE_GOAL_V1
+project	typed_components
+namespace	generated
+function	square	long long
+parameter	square	long long	x
+operation	square	product	multiply	x	x
+return	square	product
+function	sum_squares	long long
+parameter	sum_squares	long long	a
+parameter	sum_squares	long long	b
+operation	sum_squares	left	call:square	a
+operation	sum_squares	right	call:square	b
+operation	sum_squares	total	add	left	right
+return	sum_squares	total
+entry	sum_squares	#25	#3	#4
+case	square_three	square	#9	#3
+case	pythagorean	sum_squares	#25	#3	#4
+timeout-seconds	20
+require-sandbox	true

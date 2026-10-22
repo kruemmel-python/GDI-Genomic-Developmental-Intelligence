@@ -1,0 +1,17 @@
+GPI_TYPED_ARCHITECTURE_GOAL_V1
+project	typed_factorial
+namespace	generated
+function	factorial	long long
+parameter	factorial	int	n
+operation	factorial	base	less-equal	n	#1
+operation	factorial	previous	subtract	n	#1
+operation	factorial	recursive	call:factorial	previous
+operation	factorial	product	multiply	n	recursive
+operation	factorial	result	select	base	#1	product
+return	factorial	result
+entry	factorial	#720	#6
+case	zero	factorial	#1	#0
+case	one	factorial	#1	#1
+case	five	factorial	#120	#5
+timeout-seconds	20
+require-sandbox	true

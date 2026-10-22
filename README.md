@@ -13,6 +13,7 @@ Das Repository enthält den reinen Projektquellcode. Der verwendete C++20-Compil
 - Es repräsentiert beliebige C++20-Quelldateien bytegenau als genomisch hergeleitete Artefakte.
 - Es verarbeitet allgemeine mehrdateiige Projektgraphen mit Headern, Quellen, Modulen, Tests, Ressourcen, Build-Manifesten, Abhängigkeiten und Targets.
 - Es synthetisiert aus typisierten Projekt-Blueprints neue Header-, Implementierungs-, Anwendungs- und Teststrukturen, ohne fertige C++-Quelldateien als Eingabe zu verlangen.
+- Es leitet aus typisierten Ziel-Operationsgraphen eigenständig Funktionsausdrücke, Komponentenabhängigkeiten, Tests und einen ausführbaren Mehrdatei-Projektgraphen ab.
 - Es kompiliert, linkt und prüft erzeugte Programme gegen unabhängige Ein-/Ausgabe- und Exit-Code-Verträge.
 - Es kann belegte Fehlerklassen genomisch autorisiert reparieren, darunter fehlende Standard-Header, fehlende Link-Abhängigkeiten sowie bestimmte Typ- und Zahlenfehler. Nachweislich fortgeschrittene Zwischenstände bleiben über mehrere Entwicklungszyklen erhalten.
 - Es speichert ausschließlich vollständig verifizierte Transformationsgruppen atomar in einem verketteten Erfahrungsspeicher und prüft sie bei Transferaufgaben erneut.
@@ -80,6 +81,22 @@ Der Beispielquelltext enthält absichtlich einen fehlenden Standard-Header. GDI 
 
 Das Beispiel beschreibt nur eine rekursive Fibonacci-Funktion, ihren Einstieg und drei semantische Tests. GDI erzeugt daraus Header, Implementierung, ausführbare Anwendung, Testprogramm und Buildmanifest. Der externe Compiler und die Sandbox-Verhaltensverträge prüfen das Ergebnis.
 
+## Architektur aus einem typisierten Ziel entwickeln
+
+`gpi_architect` trennt die Anforderung von ihrer C++20-Implementierung. Eine Zieldatei beschreibt Funktionen, Parameter und einen gerichteten Graph elementarer Operationen. GDI prüft Datentypen, Operandenanzahl, Referenzen und Zyklen, ermittelt Funktionsabhängigkeiten und komponiert daraus den Projekt-Blueprint. Nur im unveränderlichen Genom freigegebene Kompositionsoperatoren dürfen verwendet werden.
+
+```powershell
+.\build\gpi_architect.exe `
+  --goal .\examples\typed_factorial\factorial.goal `
+  --workspace .\generated\factorial_run `
+  --compiler "F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe" `
+  --sandbox .\build\gpi_sandbox.exe `
+  --memory .\generated\architecture.memory `
+  --cycles 8
+```
+
+Das Fakultätsbeispiel enthält keinen fertigen C++-Ausdruck. Die rekursive Funktion entsteht aus Vergleich, Subtraktion, rekursivem Aufruf, Multiplikation und bedingter Auswahl. Das zweite Beispiel `typed_components` weist die automatische Zusammensetzung zweier abhängiger Funktionen nach. Erwartete Einstiegsergebnisse und unabhängige Fälle bleiben Teil des unveränderlichen Zielvertrags; jede Ausführung erfolgt verpflichtend in der Sandbox.
+
 ## Zentrale Programme
 
 | Programm | Aufgabe |
@@ -88,6 +105,7 @@ Das Beispiel beschreibt nur eine rekursive Fibonacci-Funktion, ihren Einstieg un
 | `gpi_integrated` | Zielvertrag, Kompartimente, Forschung und A–D-Architekturvergleich |
 | `gpi_develop` | allgemeine manifestbasierte Mehrdatei-Projekte, Reparatur und Erfahrungstransfer |
 | `gpi_synthesize` | genomisch autorisierte Mehrdatei-Projektsynthese aus typisierten Blueprints |
+| `gpi_architect` | typisierte Zielgraphen in Komponentenarchitektur, Projekt und Verifikation entwickeln |
 | `gpi_research` | begrenzte Hypothesen-/Experimentzyklen mit Evidenz |
 | `gpi_project` | natürlichsprachlich erzeugte Mehrdatei-Projekte im typisierten Aufgabenraum |
 | `gpi_agent` | typisierte Ausdruckssynthese mit Compiler-/Verhaltensprüfung |

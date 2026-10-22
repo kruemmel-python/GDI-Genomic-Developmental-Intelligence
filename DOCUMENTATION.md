@@ -153,7 +153,46 @@ Die Synthese ist nur möglich, wenn das eingefrorene Genom `typed-functions`, `h
 
 Der Fibonacci-End-to-End-Nachweis verwendet einen rekursiven, nicht als fertige Quelldatei hinterlegten Algorithmus. Die erzeugten fünf Artefakte werden kompiliert, gelinkt und zweimal im AppContainer ausgeführt.
 
-## 8. Verifikation
+## 8. Typisierte Zielarchitektur
+
+`gpi_architect` setzt vor dem Projekt-Blueprint eine unabhängige Anforderungsebene ein. Das Format beginnt mit:
+
+```text
+GPI_TYPED_ARCHITECTURE_GOAL_V1
+```
+
+Die wesentlichen Datensätze sind:
+
+```text
+project<TAB>NAME
+namespace<TAB>NAME
+function<TAB>NAME<TAB>RÜCKGABETYP
+parameter<TAB>FUNKTION<TAB>TYP<TAB>NAME
+operation<TAB>FUNKTION<TAB>ERGEBNIS<TAB>OPERATOR<TAB>OPERAND...
+return<TAB>FUNKTION<TAB>ERGEBNIS
+entry<TAB>FUNKTION<TAB>ERWARTET<TAB>ARGUMENT...
+case<TAB>NAME<TAB>FUNKTION<TAB>ERWARTET<TAB>ARGUMENT...
+timeout-seconds<TAB>1..60
+require-sandbox<TAB>true|false
+```
+
+Ganzzahlliterale beginnen mit `#`, boolesche Literale sind `true` und `false`. Verfügbare Kompositionen sind Kopie, arithmetische Operationen, Vergleiche, boolesche Operationen, Negation, bedingte Auswahl und typisierte Funktionsaufrufe. Diese Menge steht im eingefrorenen Genom unter `composition-operators`; ein unbekannter Operator wird vor der Quellerzeugung abgelehnt.
+
+Der Architekt löst Operandenreferenzen unabhängig von ihrer Reihenfolge auf, erkennt Zyklen innerhalb eines Funktionsgraphen, prüft Operandenanzahl und boolesch/numerische Typverträglichkeit und ermittelt Abhängigkeiten zwischen Funktionen. Rekursive Aufrufe sind als kontrollierte Funktionsabhängigkeit zulässig. Danach erzeugt er einen normalen `ProjectBlueprint` und nutzt denselben geprüften Synthese- und Verifikationsweg wie `gpi_synthesize`.
+
+`architecture.json` hält den deterministischen semantischen Ziel-Hash, die abgeleiteten Komponenten, Operationsanzahl, Funktionsabhängigkeiten, den Einstieg und die Zahl unabhängiger Fälle fest. Widersprüchliche Erwartungen für denselben Funktionsaufruf werden abgelehnt. Der Zielvertrag bleibt während Reparatur- und Erfahrungstransferzyklen unverändert. Die CLI erzwingt eine vorhandene Sandbox, auch wenn eine Eingabedatei etwas anderes verlangt.
+
+Die End-to-End-Nachweise umfassen:
+
+- rekursive Fakultät, aus fünf Operationen statt aus einem fertigen C++-Ausdruck entwickelt,
+- zwei automatisch verbundene Komponenten `square` und `sum_squares`,
+- unabhängige Fälle zusätzlich zur erwarteten Programmausgabe,
+- Ablehnung eines zyklischen Operationsgraphen,
+- reale Kompilierung mit dem externen unveränderten C++20-Compiler und sandboxierte Ausführung.
+
+Das Format ist eine sichere, deterministische Zwischenrepräsentation. Es behauptet nicht, beliebige freie natürliche Sprache ohne Rückfragen eindeutig in einen solchen Vertrag übersetzen zu können.
+
+## 9. Verifikation
 
 `verifyGenerativeProject` materialisiert den Graphen in einen neuen leeren Arbeitsordner und führt kontrollierte Compilerprozesse aus. Bibliotheksziele werden syntaktisch geprüft; Programm- und Testziele werden gelinkt. Danach werden alle Verhaltensfälle ausgeführt.
 
@@ -171,7 +210,7 @@ Ein `ProjectVerificationEvidence`-Bericht enthält:
 
 Eine negative Orakelprüfung im End-to-End-Test beweist, dass ein erfolgreich kompiliertes Programm mit falschem Verhalten abgelehnt wird.
 
-## 9. Autonome Entwicklungszyklen
+## 10. Autonome Entwicklungszyklen
 
 `runAutonomousProjectRepair` beginnt immer mit dem unveränderten Projekt. Aus der ersten fehlgeschlagenen Evidenz wählt es ausschließlich genomisch freigegebene Operatoren. Implementiert und end-to-end geprüft sind:
 
@@ -185,7 +224,7 @@ Jeder Kandidat wird erneut vollständig kompiliert und verhaltensgeprüft. Der E
 
 `runCumulativeAutonomousProjectRepair` erweitert diesen Ablauf um persistente Entwicklungszustände. Ein Zwischenstand wird nur übernommen, wenn die messbare Verifikationsfront voranschreitet: von fehlender Deklaration über Typprüfung und Linken bis zur Verhaltensprüfung. Graph-Hashes verhindern die Wiederholung bereits versuchter Zustände. Das End-to-End-Szenario weist eine Kette aus Header-Ergänzung, typisierter Stringliteral-Korrektur und Link-Provider-Erkennung in vier Verifikationszyklen nach. Alle tatsächlich ausgeführten Verifikationen zählen gegen dasselbe feste Zyklusbudget.
 
-## 10. Erfahrung und Transfer
+## 11. Erfahrung und Transfer
 
 Erfolgreiche Reparaturen werden als `VerifiedProjectTransformation` gespeichert. Ein Datensatz bindet:
 
@@ -201,7 +240,7 @@ Der Speicher ist append-only und hashverkettet. Mehrteilige Entwicklungserfahrun
 
 Transfer gilt erst als erfolgreich, wenn die gesamte gespeicherte Transformationsgruppe auf einen verwandten neuen Graphen anwendbar ist und das Ergebnis den neuen Zielvertrag unabhängig besteht. Regeln dürfen dabei strukturell generalisieren: Eine belegte Umwandlung eines eindeutigen numerischen Stringliterals wird beispielsweise auf einen anderen eindeutigen Zahlenwert angewandt, anstatt den alten Wert zu kopieren. Mehrdeutige Kontexte werden abgelehnt. Die frühere Evidenz ersetzt niemals die neue Prüfung.
 
-## 11. Multi-Kompartiment-Regulation
+## 12. Multi-Kompartiment-Regulation
 
 Analyse, Synthese und Forschung arbeiten logisch getrennt mit demselben Genom. Jedes Kompartiment besitzt lokale Moleküle, zugängliche Regionen und Erfahrungserlaubnisse. Typisierte Signale verlangen zulässige Sender-/Empfängerrollen und einen nichtleeren Zielvertrag-Hash.
 
@@ -214,13 +253,13 @@ Der A–D-Vergleich misst mit demselben Ziel und Genom:
 - kommunizierende Kompartimente,
 - kommunizierende Kompartimente mit verifizierter Erfahrung.
 
-## 12. Forschungsentscheidungen
+## 13. Forschungsentscheidungen
 
 Eine fehlende gespeicherte Komponente ist nicht automatisch eine fehlende Fähigkeit. GDI misst zunächst einen Basiskandidaten. Die Diagnose unterscheidet vorhandene wiederverwendbare Fähigkeit, ohne Forschung lösbare Aufgabe, messbare Optimierungsmöglichkeit und fehlende ausführbare Fähigkeit.
 
 Hypothesen werden kompiliert, durch unabhängige Fixtures geprüft und anhand aufgezeichneter Evidenz verglichen. Forschungsziele dürfen keine unbegrenzte Selbstmodifikation auslösen; Genom, Zyklusbudget, Dateigrenzen und Ausführungsgrenzen bleiben invariant.
 
-## 13. Sandbox
+## 14. Sandbox
 
 Unter Windows startet `gpi_sandbox` den Kandidaten in einem AppContainer:
 

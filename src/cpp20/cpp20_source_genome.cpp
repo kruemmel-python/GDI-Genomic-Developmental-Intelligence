@@ -51,6 +51,15 @@ Cpp20SourceGenome Cpp20SourceGenome::fromGenome(const GenomeStrand& genome) {
             cursor=stop+1;
         }
         if(result.projectStructures_.empty())throw std::invalid_argument("Genomic C++20 source space has empty project structures");
+        const std::string compositionPrefix="composition-operators=";const auto compositionBegin=payload.find(compositionPrefix);
+        if(compositionBegin==std::string::npos)throw std::invalid_argument("Genomic C++20 source space has no composition operators");
+        const auto compositionEnd=payload.find(';',compositionBegin);cursor=compositionBegin+compositionPrefix.size();
+        while(cursor<compositionEnd) {
+            const auto comma=payload.find(',',cursor);const auto stop=std::min(comma==std::string::npos?compositionEnd:comma,compositionEnd);
+            if(stop>cursor)result.compositionOperators_.insert(payload.substr(cursor,stop-cursor));
+            cursor=stop+1;
+        }
+        if(result.compositionOperators_.empty())throw std::invalid_argument("Genomic C++20 source space has empty composition operators");
         const std::string headerPrefix="header-symbols=";const auto headerBegin=payload.find(headerPrefix);
         if(headerBegin==std::string::npos)throw std::invalid_argument("Genomic C++20 source space has no header-symbol rules");
         const auto headerEnd=payload.find(';',headerBegin);cursor=headerBegin+headerPrefix.size();
@@ -96,6 +105,10 @@ bool Cpp20SourceGenome::mutationEnabled(std::string_view operation) const {
 
 bool Cpp20SourceGenome::structureEnabled(std::string_view structure) const {
     return projectStructures_.find(std::string(structure))!=projectStructures_.end();
+}
+
+bool Cpp20SourceGenome::compositionEnabled(std::string_view operation) const {
+    return compositionOperators_.find(std::string(operation))!=compositionOperators_.end();
 }
 
 std::vector<std::string> Cpp20SourceGenome::suggestedHeaders(std::string_view diagnostic) const {

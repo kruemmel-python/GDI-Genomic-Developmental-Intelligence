@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.1.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.2.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -54,6 +54,7 @@ set(GENOMIC_SOURCES
     src/gpi/project_experience.cpp
     src/gpi/project_manifest.cpp
     src/gpi/project_blueprint.cpp
+    src/gpi/goal_architect.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -113,6 +114,9 @@ target_link_libraries(gpi_develop PRIVATE genomic_core)
 
 add_executable(gpi_synthesize apps/gpi_synthesize.cpp)
 target_link_libraries(gpi_synthesize PRIVATE genomic_core)
+
+add_executable(gpi_architect apps/gpi_architect.cpp)
+target_link_libraries(gpi_architect PRIVATE genomic_core)
 
 if(WIN32)
     add_executable(gpi_gui WIN32 apps/gpi_gui.cpp)

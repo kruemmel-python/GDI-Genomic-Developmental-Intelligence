@@ -227,6 +227,9 @@ void test_universal_cpp20_source_space_is_lossless_and_genomic() {
     TEST_ASSERT(sourceGenome.structureEnabled("typed-functions"),"Typed function synthesis must be genomically authorized");
     TEST_ASSERT(sourceGenome.structureEnabled("header-source-executable-test"),"Multi-file project synthesis must be genomically authorized");
     TEST_ASSERT(!sourceGenome.structureEnabled("arbitrary-host-project"),"Unknown project structures must not be authorized");
+    TEST_ASSERT(sourceGenome.compositionEnabled("select"),"Conditional composition must be genomically authorized");
+    TEST_ASSERT(sourceGenome.compositionEnabled("call"),"Function-call composition must be genomically authorized");
+    TEST_ASSERT(!sourceGenome.compositionEnabled("execute-host-command"),"Unknown composition must not be authorized");
     const auto headers=sourceGenome.suggestedHeaders("error: std::cout is unavailable and vector was not declared");
     TEST_ASSERT(std::find(headers.begin(),headers.end(),"iostream")!=headers.end(),"Compiler symbol must activate genomic iostream rule");
     TEST_ASSERT(std::find(headers.begin(),headers.end(),"vector")!=headers.end(),"Compiler symbol must activate genomic vector rule");
