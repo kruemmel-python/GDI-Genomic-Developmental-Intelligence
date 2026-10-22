@@ -55,7 +55,7 @@ std::size_t tokenOffset(const std::string& source,uint32_t line,uint32_t column)
 void writeCampaign(AutonomousProjectResult& result,const AutonomousProjectConfig& config) {
     if(result.success&&!result.experienceTransferred&&!config.experienceStore.empty()) {
         ProjectExperienceStore store(config.experienceStore);
-        for(const auto& learned:result.transformations)store.append(learned);
+        store.appendGroup(result.transformations);
     }
     result.report=config.workspace/"campaign.json";std::ofstream report(result.report,std::ios::binary|std::ios::trunc);
     report<<"{\n  \"format\": \"gpi-autonomous-project-campaign-v1\",\n  \"immutable_genome_hash\": "
@@ -80,6 +80,144 @@ VerifiedProjectTransformation transformation(const GenerativeProjectGraph& seed,
     std::string auxiliary,std::string before,std::string after,const ProjectVerificationEvidence& evidence) {
     return {seed.genomeHash(),seed.graphHash(),verified.graphHash(),kind,std::move(node),std::move(auxiliary),
         std::move(before),std::move(after),projectEvidenceHash(evidence.report)};
+}
+
+struct PendingTransformation {
+    ProjectTransformationKind kind;
+    std::string node;
+    std::string auxiliary;
+    std::string before;
+    std::string after;
+};
+struct MutationProposal {
+    GenerativeProjectGraph graph;
+    std::string hypothesis;
+    std::string rationale;
+    std::vector<PendingTransformation> transformations;
+};
+const ProjectVerificationCheck* lastFailure(const ProjectVerificationEvidence& evidence) {
+    for(auto it=evidence.checks.rbegin();it!=evidence.checks.rend();++it)if(!it->passed)return &*it;
+    return nullptr;
+}
+bool missingDeclarationDiagnostic(const std::string& diagnostic) {
+    return diagnostic.find("defined in header")!=std::string::npos||
+        diagnostic.find("not a member of")!=std::string::npos||
+        diagnostic.find("was not declared in this scope")!=std::string::npos||
+        diagnostic.find("undeclared identifier")!=std::string::npos||
+        diagnostic.find("unknown type name")!=std::string::npos||
+        diagnostic.find("incomplete type")!=std::string::npos;
+}
+std::size_t progressScore(const ProjectVerificationEvidence& evidence) {
+    std::size_t passed=0;for(const auto& check:evidence.checks)if(check.passed)++passed;
+    if(evidence.success)return (passed+1)*5;
+    const auto* failure=lastFailure(evidence);std::size_t stage=0;
+    if(failure&&failure->kind=="compile") {
+        const auto diagnostic=read(failure->standardError);
+        if(diagnostic.find("undefined reference")!=std::string::npos||
+           diagnostic.find("unresolved external")!=std::string::npos)stage=2;
+        else if(!missingDeclarationDiagnostic(diagnostic)&&
+            (diagnostic.find("no matching function")!=std::string::npos||
+             diagnostic.find("cannot convert")!=std::string::npos||
+             diagnostic.find("invalid conversion")!=std::string::npos||
+             diagnostic.find("constraints not satisfied")!=std::string::npos))stage=1;
+    } else if(failure&&failure->kind=="behavior")stage=3;
+    return passed*5+stage;
+}
+std::vector<MutationProposal> compileMutationProposals(const GenerativeProjectGraph& graph,
+    const ProjectVerificationCheck& failure) {
+    std::vector<MutationProposal> proposals;if(failure.kind!="compile")return proposals;
+    const auto diagnostic=read(failure.standardError);
+    const auto target=std::find_if(graph.targets().begin(),graph.targets().end(),
+        [&](const auto& item){return item.name==failure.name;});
+    if(target==graph.targets().end())return proposals;
+    auto closure=graph.resolvedTargetNodes(target->name);
+    auto normalizedDiagnostic=diagnostic;std::replace(normalizedDiagnostic.begin(),normalizedDiagnostic.end(),'\\','/');
+    const auto mentioned=[&](const std::string& id) {
+        const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==id;});
+        return node!=graph.nodes().end()&&normalizedDiagnostic.find(node->artifact.relativePath.generic_string())!=std::string::npos;
+    };
+    std::stable_sort(closure.begin(),closure.end(),[&](const auto& left,const auto& right){return mentioned(left)>mentioned(right);});
+
+    if(graph.mutationEnabled("insert-standard-header")&&missingDeclarationDiagnostic(diagnostic)) {
+        const auto headers=graph.suggestedHeaders(diagnostic);std::size_t number=0;
+        for(const auto& nodeId:closure) {
+            const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==nodeId;});
+            if(node==graph.nodes().end()||(node->kind!=ProjectNodeKind::Source&&
+               node->kind!=ProjectNodeKind::ModuleImplementation&&node->kind!=ProjectNodeKind::Test))continue;
+            const auto original=graph.nodeContent(nodeId);std::string inserted;std::vector<PendingTransformation> pending;
+            for(const auto& header:headers) {
+                const auto directive="#include <"+header+">";
+                if(original.find(directive)==std::string::npos) {
+                    inserted+=directive+'\n';pending.push_back({ProjectTransformationKind::InsertHeader,nodeId,header,"",""});
+                }
+            }
+            if(inserted.empty())continue;
+            auto candidate=graph;candidate.replaceNodeContent(nodeId,inserted+original);
+            proposals.push_back({std::move(candidate),"genomic-header-"+std::to_string(++number),
+                "Compiler diagnostics activated genomic standard-header rules for node "+nodeId,std::move(pending)});
+        }
+    }
+
+    if(graph.mutationEnabled("infer-link-provider")&&
+       (diagnostic.find("undefined reference")!=std::string::npos||diagnostic.find("unresolved external")!=std::string::npos)) {
+        std::string consumer;
+        for(const auto& id:closure) {
+            const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==id;});
+            if(node!=graph.nodes().end()&&mentioned(id)&&(node->kind==ProjectNodeKind::Source||
+               node->kind==ProjectNodeKind::ModuleImplementation||node->kind==ProjectNodeKind::Test)){consumer=id;break;}
+        }
+        if(consumer.empty())for(const auto& id:target->nodes) {
+            const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==id;});
+            if(node!=graph.nodes().end()&&(node->kind==ProjectNodeKind::Source||
+               node->kind==ProjectNodeKind::ModuleImplementation||node->kind==ProjectNodeKind::Test)){consumer=id;break;}
+        }
+        std::vector<std::pair<std::size_t,std::string>> providers;
+        for(const auto& node:graph.nodes()) {
+            if(node.id==consumer||std::find(closure.begin(),closure.end(),node.id)!=closure.end()||
+               (node.kind!=ProjectNodeKind::Source&&node.kind!=ProjectNodeKind::ModuleImplementation))continue;
+            std::unordered_set<std::string> identifiers;
+            try {for(const auto& token:Cpp20Lexicon::tokenize(graph.nodeContent(node.id)))
+                if(token.type==TokenType::Identifier&&token.text.size()>=3)identifiers.insert(token.text);}catch(...){continue;}
+            std::size_t score=0;for(const auto& identifier:identifiers)if(diagnostic.find(identifier)!=std::string::npos)++score;
+            if(score)providers.emplace_back(score,node.id);
+        }
+        std::sort(providers.begin(),providers.end(),[](const auto& left,const auto& right){
+            return left.first!=right.first?left.first>right.first:left.second<right.second;});
+        std::size_t number=0;for(const auto& [score,provider]:providers) {
+            auto candidate=graph;candidate.addDependency(consumer,provider,ProjectDependencyKind::Links);
+            proposals.push_back({std::move(candidate),"genomic-link-"+std::to_string(++number),
+                "Linker diagnostics matched "+std::to_string(score)+" provider symbols in node "+provider,
+                {{ProjectTransformationKind::AddLinkDependency,consumer,provider,"",""}}});
+        }
+    }
+
+    if(graph.mutationEnabled("coerce-numeric-string-literal")) {
+        std::size_t number=0;
+        for(const auto& nodeId:closure) {
+            const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==nodeId;});
+            if(node==graph.nodes().end()||(node->kind!=ProjectNodeKind::Source&&
+               node->kind!=ProjectNodeKind::ModuleImplementation&&node->kind!=ProjectNodeKind::Test))continue;
+            const auto source=graph.nodeContent(nodeId);
+            try {for(const auto& token:Cpp20Lexicon::tokenize(source)) {
+                if(token.type!=TokenType::StringLiteral)continue;
+                int64_t numeric=0;if(!integer(token.text,numeric))continue;
+                const auto offset=tokenOffset(source,token.line,token.column);
+                if(offset+token.text.size()+1>=source.size()||source[offset]!='"'||
+                   source.compare(offset+1,token.text.size(),token.text)!=0||source[offset+token.text.size()+1]!='"')continue;
+                auto candidate=graph;auto changed=source;const auto before="\""+token.text+"\"";
+                changed.replace(offset,token.text.size()+2,std::to_string(numeric));candidate.replaceNodeContent(nodeId,changed);
+                proposals.push_back({std::move(candidate),"genomic-type-"+std::to_string(++number),
+                    "Compiler rejection activated numeric string-literal coercion in node "+nodeId,
+                    {{ProjectTransformationKind::ReplaceExactToken,nodeId,"coerce-numeric-string-literal",before,std::to_string(numeric)}}});
+            }}catch(...){continue;}
+        }
+    }
+    return proposals;
+}
+VerifiedProjectTransformation finalizedTransformation(const GenerativeProjectGraph& origin,
+    const ProjectVerificationEvidence& finalEvidence,const PendingTransformation& pending) {
+    return {origin.genomeHash(),origin.graphHash(),finalEvidence.graphHash,pending.kind,pending.node,pending.auxiliary,
+        pending.before,pending.after,projectEvidenceHash(finalEvidence.report)};
 }
 }
 
@@ -364,6 +502,72 @@ AutonomousProjectResult runAutonomousProjectRepair(const GenerativeProjectGraph&
                         if(result.cycles.size()>=config.maxCycles){writeCampaign(result,config);return result;}
                     }
                 }
+            }
+        }
+    }
+    writeCampaign(result,config);return result;
+}
+
+AutonomousProjectResult runCumulativeAutonomousProjectRepair(const GenerativeProjectGraph& seed,
+    const ProjectVerificationContract& contract,const AutonomousProjectConfig& config) {
+    if(config.maxCycles<2||config.maxCycles>16)throw std::invalid_argument("Cumulative repair requires 2..16 cycles");
+    if(config.workspace.empty()||(std::filesystem::exists(config.workspace)&&!std::filesystem::is_empty(config.workspace)))
+        throw std::invalid_argument("Cumulative repair workspace must be new or empty");
+    std::filesystem::create_directories(config.workspace);
+    AutonomousProjectResult result;result.immutableGenomeHash=seed.genomeHash();
+    GenerativeProjectGraph current=seed;std::vector<PendingTransformation> pending;
+    std::unordered_set<uint64_t> attempted{seed.graphHash()};
+    ProjectDevelopmentCycle initial;initial.number=1;initial.hypothesis="seed";
+    initial.rationale="Measure the unmodified project against the invariant goal contract";
+    initial.evidence=verifyGenerativeProject(current,contract,config.workspace/"cycle_1",config.compiler,config.sandboxRunner);
+    result.cycles.push_back(std::move(initial));
+    if(result.cycles.back().evidence.success) {
+        result.success=true;result.selectedHypothesis="seed";writeCampaign(result,config);return result;
+    }
+    auto currentEvidence=result.cycles.back().evidence;
+    while(result.cycles.size()<config.maxCycles) {
+        const auto* failure=lastFailure(currentEvidence);if(!failure)break;
+        auto proposals=compileMutationProposals(current,*failure);if(proposals.empty())break;
+        const auto baseline=progressScore(currentEvidence);bool advanced=false;
+        for(auto& proposal:proposals) {
+            if(result.cycles.size()>=config.maxCycles)break;
+            const auto hash=proposal.graph.graphHash();if(!attempted.insert(hash).second)continue;
+            ProjectDevelopmentCycle cycle;cycle.number=result.cycles.size()+1;cycle.hypothesis=proposal.hypothesis;
+            cycle.rationale=proposal.rationale;
+            cycle.evidence=verifyGenerativeProject(proposal.graph,contract,
+                config.workspace/("cycle_"+std::to_string(cycle.number)),config.compiler,config.sandboxRunner);
+            result.cycles.push_back(std::move(cycle));const auto& evidence=result.cycles.back().evidence;
+            if(evidence.success) {
+                pending.insert(pending.end(),proposal.transformations.begin(),proposal.transformations.end());
+                result.success=true;result.selectedHypothesis=proposal.hypothesis;
+                for(const auto& item:pending)result.transformations.push_back(finalizedTransformation(seed,evidence,item));
+                writeCampaign(result,config);return result;
+            }
+            if(progressScore(evidence)>baseline) {
+                current=std::move(proposal.graph);currentEvidence=evidence;
+                pending.insert(pending.end(),proposal.transformations.begin(),proposal.transformations.end());
+                advanced=true;break;
+            }
+        }
+        if(!advanced)break;
+    }
+
+    const auto remaining=config.maxCycles-result.cycles.size();
+    if(remaining>=2) {
+        AutonomousProjectConfig fallback{config.workspace/"fallback",config.compiler,config.sandboxRunner,
+            std::min<std::size_t>(16,remaining),{}};
+        {
+            const auto continuation=runAutonomousProjectRepair(current,contract,fallback);
+            for(std::size_t i=0;i<continuation.cycles.size()&&result.cycles.size()<config.maxCycles;++i) {
+                auto cycle=continuation.cycles[i];cycle.number=result.cycles.size()+1;result.cycles.push_back(std::move(cycle));
+            }
+            if(continuation.success&&!continuation.cycles.empty()) {
+                const auto& finalEvidence=continuation.cycles.back().evidence;
+                for(const auto& item:continuation.transformations)
+                    pending.push_back({item.kind,item.node,item.auxiliary,item.before,item.after});
+                result.success=true;result.selectedHypothesis=continuation.selectedHypothesis;
+                for(const auto& item:pending)result.transformations.push_back(finalizedTransformation(seed,finalEvidence,item));
+                writeCampaign(result,config);return result;
             }
         }
     }

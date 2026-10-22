@@ -136,6 +136,33 @@ int main(int argc,char** argv) {
         if(!linkCampaign.success||linkCampaign.selectedHypothesis!="genomic-link-1"||
            linkCampaign.cycles.size()!=2||linkCampaign.cycles.front().evidence.success||
            !linkCampaign.cycles.back().evidence.success)return 10;
+        const auto cumulativeRoot=std::filesystem::path(root.string()+"_cumulative_campaign");
+        const auto cumulativeMemory=std::filesystem::path(root.string()+"_cumulative.memory");
+        std::filesystem::remove_all(cumulativeRoot,error);std::filesystem::remove(cumulativeMemory,error);
+        campaignConfig.workspace=cumulativeRoot;campaignConfig.maxCycles=5;campaignConfig.experienceStore=cumulativeMemory;
+        const auto cumulative=runCumulativeAutonomousProjectRepair(makeGraph("\"21\"",false,false),contract,campaignConfig);
+        if(!cumulative.success||cumulative.cycles.size()!=4||cumulative.transformations.size()!=3||
+           cumulative.cycles[1].hypothesis!="genomic-header-1"||
+           cumulative.cycles[2].hypothesis!="genomic-type-1"||cumulative.cycles[3].hypothesis!="genomic-link-1"||
+           cumulative.cycles[1].evidence.success||cumulative.cycles[2].evidence.success||
+           !cumulative.cycles[3].evidence.success)return 19;
+        const auto cumulativeLearned=ProjectExperienceStore(cumulativeMemory).load();
+        if(cumulativeLearned.size()!=3||cumulativeLearned[0].originGraphHash!=cumulativeLearned[1].originGraphHash||
+           cumulativeLearned[1].originGraphHash!=cumulativeLearned[2].originGraphHash||
+           cumulativeLearned[0].verifiedGraphHash!=cumulativeLearned[2].verifiedGraphHash||
+           cumulativeLearned[0].evidenceHash!=cumulativeLearned[2].evidenceHash)return 20;
+        {std::ifstream atomicGroup(cumulativeMemory,std::ios::binary);std::string first,second;
+         std::getline(atomicGroup,first);std::getline(atomicGroup,second);
+         if(first.rfind("GPIG2|",0)!=0||!second.empty())return 22;}
+        const auto cumulativeTransferRoot=std::filesystem::path(root.string()+"_cumulative_transfer");
+        std::filesystem::remove_all(cumulativeTransferRoot,error);
+        auto cumulativeTransferContract=contract;cumulativeTransferContract.behaviors.front().expectedOutput="44\n";
+        AutonomousProjectConfig cumulativeTransferConfig{cumulativeTransferRoot,compiler,sandbox,1,{}};
+        const auto cumulativeTransfer=runExperienceTransferredProjectDevelopment(makeGraph("\"22\"",false,false),
+            cumulativeTransferContract,cumulativeTransferConfig,ProjectExperienceStore(cumulativeMemory));
+        if(!cumulativeTransfer.success||!cumulativeTransfer.experienceTransferred||
+           cumulativeTransfer.transformations.size()!=3)return 21;
+        campaignConfig.experienceStore.clear();
         const auto typeCampaignRoot=std::filesystem::path(root.string()+"_type_campaign");
         std::filesystem::remove_all(typeCampaignRoot,error);
         campaignConfig.workspace=typeCampaignRoot;campaignConfig.maxCycles=3;

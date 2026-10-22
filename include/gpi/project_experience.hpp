@@ -28,6 +28,7 @@ public:
     explicit ProjectExperienceStore(std::filesystem::path path):path_(std::move(path)){}
     std::vector<VerifiedProjectTransformation> load() const;
     void append(const VerifiedProjectTransformation& transformation) const;
+    void appendGroup(const std::vector<VerifiedProjectTransformation>& transformations) const;
 private:
     std::filesystem::path path_;
 };

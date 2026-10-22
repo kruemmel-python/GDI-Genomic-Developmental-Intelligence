@@ -56,6 +56,13 @@ AutonomousProjectResult runAutonomousProjectRepair(
     const ProjectVerificationContract& invariantGoalContract,
     const AutonomousProjectConfig& config);
 
+// Preserves evidence-backed intermediate graphs, allowing a later cycle to
+// repair a newly exposed failure without discarding earlier valid changes.
+AutonomousProjectResult runCumulativeAutonomousProjectRepair(
+    const GenerativeProjectGraph& seed,
+    const ProjectVerificationContract& invariantGoalContract,
+    const AutonomousProjectConfig& config);
+
 AutonomousProjectResult runExperienceTransferredProjectDevelopment(
     const GenerativeProjectGraph& seed,
     const ProjectVerificationContract& invariantGoalContract,

@@ -13,8 +13,8 @@ Das Repository enthält den reinen Projektquellcode. Der verwendete C++20-Compil
 - Es repräsentiert beliebige C++20-Quelldateien bytegenau als genomisch hergeleitete Artefakte.
 - Es verarbeitet allgemeine mehrdateiige Projektgraphen mit Headern, Quellen, Modulen, Tests, Ressourcen, Build-Manifesten, Abhängigkeiten und Targets.
 - Es kompiliert, linkt und prüft erzeugte Programme gegen unabhängige Ein-/Ausgabe- und Exit-Code-Verträge.
-- Es kann belegte Fehlerklassen genomisch autorisiert reparieren, darunter fehlende Standard-Header, fehlende Link-Abhängigkeiten sowie bestimmte Typ- und Zahlenfehler.
-- Es speichert ausschließlich erfolgreich verifizierte Transformationen in einem verketteten Erfahrungsspeicher und prüft sie bei Transferaufgaben erneut.
+- Es kann belegte Fehlerklassen genomisch autorisiert reparieren, darunter fehlende Standard-Header, fehlende Link-Abhängigkeiten sowie bestimmte Typ- und Zahlenfehler. Nachweislich fortgeschrittene Zwischenstände bleiben über mehrere Entwicklungszyklen erhalten.
+- Es speichert ausschließlich vollständig verifizierte Transformationsgruppen atomar in einem verketteten Erfahrungsspeicher und prüft sie bei Transferaufgaben erneut.
 - Unter Windows führt es unbekannten Programmcode in einer AppContainer-Sandbox ohne deklarierte Netzwerkfähigkeiten aus.
 
 ## Build

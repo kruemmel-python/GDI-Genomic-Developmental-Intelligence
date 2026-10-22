@@ -56,7 +56,7 @@ int main(int argc,char** argv) {
             if(transferred.success){print(transferred);std::cout<<"RESULT=PASS\n";return 0;}
         }
         genomic::gpi::AutonomousProjectConfig repair{workspace/"repair",compiler,sandbox,maxCycles,memory};
-        const auto result=genomic::gpi::runAutonomousProjectRepair(specification.graph,specification.contract,repair);
+        const auto result=genomic::gpi::runCumulativeAutonomousProjectRepair(specification.graph,specification.contract,repair);
         print(result);std::cout<<"RESULT="<<(result.success?"PASS":"BLOCKED")<<'\n';return result.success?0:4;
     } catch(const std::exception& error) {
         std::cerr<<"GPI DEVELOP ERROR: "<<error.what()<<'\n';return 1;

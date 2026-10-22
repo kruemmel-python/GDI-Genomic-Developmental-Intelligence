@@ -143,6 +143,8 @@ Eine negative Orakelprüfung im End-to-End-Test beweist, dass ein erfolgreich ko
 
 Jeder Kandidat wird erneut vollständig kompiliert und verhaltensgeprüft. Der Entwicklungszyklus besitzt ein festes Budget von höchstens 16 Versuchen. Nicht erkannte Fehler werden nicht willkürlich umgeschrieben.
 
+`runCumulativeAutonomousProjectRepair` erweitert diesen Ablauf um persistente Entwicklungszustände. Ein Zwischenstand wird nur übernommen, wenn die messbare Verifikationsfront voranschreitet: von fehlender Deklaration über Typprüfung und Linken bis zur Verhaltensprüfung. Graph-Hashes verhindern die Wiederholung bereits versuchter Zustände. Das End-to-End-Szenario weist eine Kette aus Header-Ergänzung, typisierter Stringliteral-Korrektur und Link-Provider-Erkennung in vier Verifikationszyklen nach. Alle tatsächlich ausgeführten Verifikationen zählen gegen dasselbe feste Zyklusbudget.
+
 ## 9. Erfahrung und Transfer
 
 Erfolgreiche Reparaturen werden als `VerifiedProjectTransformation` gespeichert. Ein Datensatz bindet:
@@ -155,9 +157,9 @@ Erfolgreiche Reparaturen werden als `VerifiedProjectTransformation` gespeichert.
 - Vorher-/Nachher-Token,
 - Hash des ursprünglichen Evidenzberichts.
 
-Der Speicher ist append-only und hashverkettet. Beim Laden werden Format, Grenzen, Kette, Provenienz und transformationsspezifische Pflichtfelder geprüft. Eine Transformation eines anderen Genoms wird abgelehnt.
+Der Speicher ist append-only und hashverkettet. Mehrteilige Entwicklungserfahrungen werden als ein einzelner `GPIG2`-Gruppendatensatz geschrieben, damit kein lesbarer Teilzustand zwischen zwei Records entstehen kann. Ältere `GPIT1`-Einzelrecords bleiben lesbar. Beim Laden werden Format, Gruppengröße, Kette, gemeinsame Provenienz und transformationsspezifische Pflichtfelder geprüft. Eine Transformation eines anderen Genoms wird abgelehnt.
 
-Transfer gilt erst als erfolgreich, wenn die gespeicherte Transformation auf einen verwandten neuen Graphen anwendbar ist und das Ergebnis den neuen Zielvertrag unabhängig besteht. Die frühere Evidenz ersetzt niemals die neue Prüfung.
+Transfer gilt erst als erfolgreich, wenn die gesamte gespeicherte Transformationsgruppe auf einen verwandten neuen Graphen anwendbar ist und das Ergebnis den neuen Zielvertrag unabhängig besteht. Regeln dürfen dabei strukturell generalisieren: Eine belegte Umwandlung eines eindeutigen numerischen Stringliterals wird beispielsweise auf einen anderen eindeutigen Zahlenwert angewandt, anstatt den alten Wert zu kopieren. Mehrdeutige Kontexte werden abgelehnt. Die frühere Evidenz ersetzt niemals die neue Prüfung.
 
 ## 10. Multi-Kompartiment-Regulation
 
