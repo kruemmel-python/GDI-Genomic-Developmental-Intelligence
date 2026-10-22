@@ -1,0 +1,1 @@
+Erstelle ein Programm, das 5 Zahlen einliest und den Durchschnitt sowie das Maximum ausgibt

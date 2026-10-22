@@ -1,0 +1,14 @@
+/build/
+/bin/
+/obj/
+/generated/
+/KR_BUILD/
+*.exe
+*.dll
+*.a
+*.o
+*.obj
+*.log
+*.memory
+*.zip
+.DS_Store

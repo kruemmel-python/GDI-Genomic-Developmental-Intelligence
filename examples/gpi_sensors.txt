@@ -1,0 +1,1 @@
+Ueberwache 10 Sensoren, speichere Messwerte als CSV und loese Alarm ab 80 aus

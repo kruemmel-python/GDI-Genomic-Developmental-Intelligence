@@ -1,0 +1,13 @@
+GPI_PROJECT_CONTRACT_V1
+node	api	header	include/demo/api.hpp
+node	implementation	source	src/api.cpp
+node	application	source	src/main.cpp
+dependency	implementation	api	includes
+dependency	application	api	includes
+dependency	application	implementation	links
+target	app	executable	application
+include	include
+build	app
+behavior	program-output	app	-	fixtures/expected.txt	-	0
+timeout-seconds	20
+require-sandbox	true
