@@ -1,0 +1,10 @@
+include/gpi/autonomous_software_engineering.hpp
+src/gpi/autonomous_software_engineering.cpp
+apps/gdi_intelligence.cpp
+apps/gpi_gui.cpp
+src/genome/genome_bootstrap.cpp
+CMakeLists.txt
+tests/test_r17_asei.cpp
+examples/r17_neutral_project/CMakeLists.txt
+examples/r17_neutral_project/src/main.cpp
+examples/r17_neutral_project/tests/regression.cpp

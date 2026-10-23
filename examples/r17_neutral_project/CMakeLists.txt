@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(r17_neutral_project LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(neutral_app src/main.cpp)
+add_executable(neutral_regression tests/regression.cpp)
+add_test(NAME neutral_regression COMMAND neutral_regression)

@@ -1,9 +1,14 @@
 #include "gpi/developmental_intelligence.hpp"
 #include "gpi/foreign_project_intelligence.hpp"
+#include "gpi/build_contract.hpp"
+#include "gpi/development_strategy.hpp"
+#include "gpi/autonomous_software_engineering.hpp"
 
 #include <charconv>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -20,12 +25,13 @@ std::size_t parseCycles(const std::string& value) {
 int main(int argc,char** argv) {
     try {
         std::filesystem::path curriculumPath,foreignProjectPath,workspace,compiler="g++",sandbox,componentMemory,repairMemory;
-        std::filesystem::path krJava,krCompilerJar;
+        std::filesystem::path krJava,krCompilerJar,strategyMemory,cmakeExecutable="cmake",ctestExecutable="ctest",msbuildExecutable,ninjaExecutable="ninja",makeExecutable="make";
         std::filesystem::path projectMemoryPath,devPrincipleMemoryPath;
-        std::string objective,runtimeReadyMarker;
+        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement;
         bool controlExperiment=false;
         bool allowWriteback=false;
         bool krEndToEnd=false;
+        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false;
         std::size_t maxCycles=8;
         for(int i=1;i<argc;++i) {
             const std::string key=argv[i];
@@ -41,11 +47,17 @@ int main(int argc,char** argv) {
                 krEndToEnd=true;
                 continue;
             }
+            if(key=="--build-contract") { contractOnly=true; continue; }
+            if(key=="--baseline") { baselineOnly=true; continue; }
+            if(key=="--induce-strategy") { induceStrategy=true; continue; }
+            if(key=="--execute-strategy") { executeStrategy=true; continue; }
+            if(key=="--r17-execute") { r17Execute=true; continue; }
             if(i+1>=argc)throw std::invalid_argument("Every option requires a value");
             const std::string value=argv[++i];
             if(key=="--curriculum"||key=="--behavior")curriculumPath=value;
             else if(key=="--foreign-project")foreignProjectPath=value;
             else if(key=="--objective"||key=="--goal-prompt")objective=value;
+            else if(key=="--development-requirement")developmentRequirement=value;
             else if(key=="--workspace")workspace=value;
             else if(key=="--compiler")compiler=value;
             else if(key=="--sandbox")sandbox=value;
@@ -56,11 +68,45 @@ int main(int argc,char** argv) {
             else if(key=="--kr-java")krJava=value;
             else if(key=="--kr-compiler-jar")krCompilerJar=value;
             else if(key=="--runtime-ready-marker")runtimeReadyMarker=value;
+            else if(key=="--strategy-memory")strategyMemory=value;
+            else if(key=="--cmake")cmakeExecutable=value;
+            else if(key=="--ctest")ctestExecutable=value;
+            else if(key=="--msbuild")msbuildExecutable=value;
+            else if(key=="--ninja")ninjaExecutable=value;
+            else if(key=="--make")makeExecutable=value;
+            else if(key=="--generator")generatorOverride=value;
+            else if(key=="--generator-platform")generatorPlatformOverride=value;
+            else if(key=="--windows-sdk")windowsSdkOverride=value;
             else if(key=="--cycles")maxCycles=parseCycles(value);
             else throw std::invalid_argument("Unknown option: "+key);
         }
-        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty())||workspace.empty()||(!krEndToEnd&&sandbox.empty()))
-            throw std::invalid_argument("Either --foreign-project, --objective, or --curriculum (or --behavior), plus --workspace and --sandbox are required");
+        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty())||workspace.empty()||
+           (developmentRequirement.empty()&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
+            throw std::invalid_argument("Either --foreign-project, --objective, --development-requirement, or --curriculum (or --behavior), plus --workspace are required");
+
+        if(!developmentRequirement.empty()) {
+            if(foreignProjectPath.empty())throw std::invalid_argument("--development-requirement requires --foreign-project");
+            genomic::gpi::SoftwareDevelopmentConfig r17;
+            r17.originalProject=foreignProjectPath;r17.isolatedWorkspace=workspace;
+            r17.strategyMemory=strategyMemory.empty()?(workspace/"r17_strategies.gdis"):strategyMemory;
+            r17.experiencePath=workspace/"r17_experience.gdire";r17.execute=r17Execute;
+            r17.nativeBuild.originalProject=foreignProjectPath;r17.nativeBuild.isolatedWorkspace=workspace/"baseline";
+            r17.nativeBuild.configuration="Release";r17.nativeBuild.timeoutMilliseconds=600000;r17.nativeBuild.runTests=true;
+            r17.nativeBuild.cmakeExecutable=cmakeExecutable;r17.nativeBuild.ctestExecutable=ctestExecutable;
+            r17.nativeBuild.msbuildExecutable=msbuildExecutable;r17.nativeBuild.ninjaExecutable=ninjaExecutable;r17.nativeBuild.makeExecutable=makeExecutable;
+            r17.nativeBuild.generatorOverride=generatorOverride;r17.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;r17.nativeBuild.windowsSdkOverride=windowsSdkOverride;
+            const auto result=genomic::gpi::runAutonomousSoftwareDevelopment(r17,developmentRequirement);
+            std::cout<<"R17_REQUIREMENT="<<result.requirement.id
+                     <<"\nR17_CAPABILITY="<<result.requirement.capabilityClass
+                     <<"\nR17_ARCHITECTURE="<<result.architecture.id
+                     <<"\nR17_CHANGES="<<result.changes.size()
+                     <<"\nR17_ACCEPTANCE="<<result.acceptance.size()
+                     <<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")
+                     <<"\nEXPERIENCE_PERSISTED="<<(result.experiencePersisted?"YES":"NO")
+                     <<"\nRESULT="<<genomic::gpi::toString(result.outcome)
+                     <<"\nREPORT="<<result.reportPath.string()<<'\n';
+            return result.outcome==genomic::gpi::DevelopmentOutcome::Complete?0:4;
+        }
 
         if(!foreignProjectPath.empty()) {
             if(krEndToEnd) {
@@ -86,6 +132,54 @@ int main(int argc,char** argv) {
                          <<"\nRESULT="<<(krResult.success()?"PASS":"BLOCKED")
                          <<"\nREPORT="<<krResult.reportPath.string()<<'\n';
                 return krResult.success()?0:4;
+            }
+            const auto contract=genomic::gpi::discoverBuildContract(foreignProjectPath);
+            std::filesystem::create_directories(workspace);
+            const auto contractPath=workspace/"build_contract.gdibc";
+            genomic::gpi::saveBuildContract(contract,contractPath);
+            { std::ofstream json(workspace/"build_contract.json"); json<<genomic::gpi::renderBuildContractJson(contract); }
+            if(contractOnly) {
+                std::cout<<"BUILD_SYSTEM="<<genomic::gpi::toString(contract.buildSystem)
+                         <<"\nCOMPILER_FAMILY="<<contract.compilerFamily.value
+                         <<"\nGENERATOR="<<contract.generator.value
+                         <<"\nTARGETS="<<contract.targets.size()
+                         <<"\nCONTRACT="<<contractPath.string()<<"\nRESULT=PASS\n";
+                return 0;
+            }
+            // Native build contracts are binding. Direct-compiler projects retain
+            // the existing genomic source-graph path below.
+            if(contract.buildSystem!=genomic::gpi::BuildSystemKind::DirectCompiler) {
+                genomic::gpi::NativeBuildConfig nativeConfig;
+                nativeConfig.originalProject=foreignProjectPath;nativeConfig.isolatedWorkspace=workspace/"native_baseline";
+                nativeConfig.configuration="Release";nativeConfig.timeoutMilliseconds=600000;nativeConfig.runTests=true;
+                nativeConfig.cmakeExecutable=cmakeExecutable;nativeConfig.ctestExecutable=ctestExecutable;nativeConfig.msbuildExecutable=msbuildExecutable;
+                nativeConfig.ninjaExecutable=ninjaExecutable;nativeConfig.makeExecutable=makeExecutable;
+                nativeConfig.generatorOverride=generatorOverride;nativeConfig.generatorPlatformOverride=generatorPlatformOverride;
+                nativeConfig.windowsSdkOverride=windowsSdkOverride;
+                const auto baseline=genomic::gpi::executeNativeBuild(contract,nativeConfig);
+                genomic::gpi::StrategyPlanningRequest request;
+                request.goal=objective.empty()?"Reproduce, diagnose and develop the project under its native build contract":objective;
+                request.contract=contract;request.baseline=baseline.baselineStatus;request.diagnostics=baseline.diagnostics;
+                if(!strategyMemory.empty())request.experience=genomic::gpi::DevelopmentStrategyStore(strategyMemory).load();
+                const auto strategyPlan=genomic::gpi::AutonomousStrategyPlanner().plan(request);
+                std::optional<genomic::gpi::StrategyExecutionResult> execution;
+                if(executeStrategy&&strategyPlan.executable) {
+                    genomic::gpi::NativeBuildConfig executionConfig=nativeConfig;
+                    executionConfig.isolatedWorkspace=workspace/"strategy_execution";
+                    execution=genomic::gpi::executeDevelopmentStrategy(strategyPlan.selected,contract,executionConfig);
+                    if(!strategyMemory.empty()){auto learned=execution->strategy;learned.successfulContexts.push_back(genomic::gpi::toString(contract.buildSystem));genomic::gpi::DevelopmentStrategyStore(strategyMemory).append(learned);}
+                }
+                std::cout<<"BUILD_SYSTEM="<<genomic::gpi::toString(contract.buildSystem)
+                         <<"\nBASELINE="<<genomic::gpi::toString(baseline.baselineStatus)
+                         <<"\nORIGINAL_UNTOUCHED="<<(baseline.originalUntouched?"YES":"NO")
+                         <<"\nDIAGNOSTICS="<<baseline.diagnostics.size()
+                         <<"\nSTRATEGY_CANDIDATES="<<strategyPlan.candidates.size()
+                         <<"\nSELECTED_STRATEGY="<<(strategyPlan.executable?strategyPlan.selected.id:"")
+                         <<"\nSTRATEGY_EXECUTED="<<(execution.has_value()?"YES":"NO")
+                         <<"\nRESULT="<<((baseline.baselineStatus==genomic::gpi::BuildBaselineStatus::BaselineReproduced)?"PASS":"BLOCKED")
+                         <<"\nREPORT="<<baseline.reportPath.string()<<'\n';
+                if(baselineOnly||induceStrategy||executeStrategy)return baseline.baselineStatus==genomic::gpi::BuildBaselineStatus::BaselineReproduced?0:4;
+                return baseline.baselineStatus==genomic::gpi::BuildBaselineStatus::BaselineReproduced?0:4;
             }
             genomic::gpi::ForeignProjectDevelopmentConfig fpConfig;
             fpConfig.foreignProjectRoot=foreignProjectPath;

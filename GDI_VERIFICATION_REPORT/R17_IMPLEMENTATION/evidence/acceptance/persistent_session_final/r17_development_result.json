@@ -1,0 +1,9 @@
+{
+  "format": "GDIR17R1",
+  "outcome": "COMPLETE",
+  "requirement": "req:972e27f685c81de2",
+  "component": "r17_persistent_state",
+  "changes": 4,
+  "acceptance": 3,
+  "original_untouched": true
+}

@@ -1,0 +1,11 @@
+{
+  "format": "gdi-gui-self-test-v1",
+  "passed": true,
+  "engine_version": "1.4.1",
+  "compiler": "GCC 16.1.0",
+  "process_path": "D:/2_antigravity_GDI/build_r17/gpi_gui.exe",
+  "foreign_project_analysis": true,
+  "build_contract_integration": true,
+  "strategy_planner_integration": true,
+  "r17_requirement_pipeline": true
+}

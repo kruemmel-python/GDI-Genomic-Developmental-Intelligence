@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.4.1 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.5.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -59,6 +59,9 @@ set(GENOMIC_SOURCES
     src/gpi/developmental_intelligence.cpp
     src/gpi/foreign_project_intelligence.cpp
     src/gpi/filesystem_safety.cpp
+    src/gpi/build_contract.cpp
+    src/gpi/development_strategy.cpp
+    src/gpi/autonomous_software_engineering.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -156,6 +159,12 @@ target_link_libraries(test_behavioral_induction PRIVATE genomic_core)
 add_executable(test_generative_project tests/test_generative_project.cpp)
 target_link_libraries(test_generative_project PRIVATE genomic_core)
 
+add_executable(test_r15_r16 tests/test_r15_r16.cpp)
+target_link_libraries(test_r15_r16 PRIVATE genomic_core)
+
+add_executable(test_r17_asei tests/test_r17_asei.cpp)
+target_link_libraries(test_r17_asei PRIVATE genomic_core)
+
 enable_testing()
 
 option(GDI_ENABLE_KR_E2E_TEST "Enable the external KR/Go/Rust/SDL project end-to-end test" OFF)
@@ -186,6 +195,10 @@ add_test(NAME GPIProjectEndToEnd
         "-DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/gpi_project_e2e"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/gpi_project_end_to_end.cmake")
 add_test(NAME ComprehensiveSection43Tests COMMAND test_genomic_system)
+add_test(NAME GDIR15R16UnitTests COMMAND test_r15_r16
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_r15_r16_unit")
+add_test(NAME GDIR17AseiTests COMMAND test_r17_asei
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_r17_asei")
 
 add_test(NAME GPIPromptEndToEnd
     COMMAND ${CMAKE_COMMAND}

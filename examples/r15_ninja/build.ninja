@@ -1,0 +1,4 @@
+rule compile
+  command = g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror $in -o $out
+build r15_ninja.exe: compile main.cpp
+default r15_ninja.exe

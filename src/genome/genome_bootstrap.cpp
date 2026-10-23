@@ -435,7 +435,24 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
         "gpi-operation-v1|sort_ascending|16803|NumberSequence|OrderedSequence",
         "gpi-operation-v1|median|16804|NumberSequence|Scalar",
         "gpi-operation-v1|sum|16805|NumberSequence|Scalar",
-        "gpi-operation-v1|frequency|16806|NumberSequence|FrequencyTable"
+        "gpi-operation-v1|frequency|16806|NumberSequence|FrequencyTable",
+        // R15/R16 static design loci. They authorize host-side developmental
+        // operators; the frozen strand remains immutable for the entire run.
+        "gpi-operation-v1|discover_build_contract|16807|ForeignProject|BuildContract",
+        "gpi-operation-v1|reconstruct_native_baseline|16808|BuildContract|BaselineEvidence",
+        "gpi-operation-v1|classify_build_diagnostics|16809|BaselineEvidence|CausalDiagnosis",
+        "gpi-operation-v1|induce_development_strategy|16810|CausalDiagnosis|StrategyGraph",
+        "gpi-operation-v1|execute_development_strategy|16811|StrategyGraph|VerificationEvidence",
+        "gpi-operation-v1|transfer_development_strategy|16812|StrategyExperience|StrategyGraph",
+        // R17 static ASEI operators. These loci are versioned design-time
+        // definitions; runtime development experiences never mutate the genome.
+        "gpi-operation-v1|interpret_requirement|16813|RequirementText|RequirementContract",
+        "gpi-operation-v1|analyze_change_impact|16814|RequirementContract|ChangeImpactGraph",
+        "gpi-operation-v1|synthesize_architecture|16815|ChangeImpactGraph|ArchitectureChangePlan",
+        "gpi-operation-v1|synthesize_cpp20_component|16816|ArchitectureChangePlan|Cpp20Component",
+        "gpi-operation-v1|integrate_isolated_component|16817|Cpp20Component|IntegratedWorkspace",
+        "gpi-operation-v1|verify_acceptance|16818|IntegratedWorkspace|AcceptanceEvidence",
+        "gpi-operation-v1|consolidate_development_experience|16819|AcceptanceEvidence|DevelopmentExperience"
     };
     for (std::size_t i=0;i<researchCapabilities.size();++i) {
         const auto& capability=researchCapabilities[i];

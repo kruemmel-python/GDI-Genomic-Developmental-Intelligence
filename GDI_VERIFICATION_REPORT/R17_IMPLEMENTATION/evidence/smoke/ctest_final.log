@@ -1,0 +1,29 @@
+Test project D:/2_antigravity_GDI/build_r17
+      Start  1: GDIBehavioralInductionEndToEnd
+ 1/12 Test  #1: GDIBehavioralInductionEndToEnd ...   Passed  279.52 sec
+      Start  2: GPIv03UnitTests
+ 2/12 Test  #2: GPIv03UnitTests ..................   Passed    0.21 sec
+      Start  3: GPIProjectEndToEnd
+ 3/12 Test  #3: GPIProjectEndToEnd ...............   Passed   63.41 sec
+      Start  4: ComprehensiveSection43Tests
+ 4/12 Test  #4: ComprehensiveSection43Tests ......   Passed    0.22 sec
+      Start  5: GDIR15R16UnitTests
+ 5/12 Test  #5: GDIR15R16UnitTests ...............   Passed    0.06 sec
+      Start  6: GDIR17AseiTests
+ 6/12 Test  #6: GDIR17AseiTests ..................   Passed    0.07 sec
+      Start  7: GPIPromptEndToEnd
+ 7/12 Test  #7: GPIPromptEndToEnd ................   Passed   10.13 sec
+      Start  8: GPIAgentEndToEnd
+ 8/12 Test  #8: GPIAgentEndToEnd .................   Passed   18.87 sec
+      Start  9: GPIResearchEndToEnd
+ 9/12 Test  #9: GPIResearchEndToEnd ..............   Passed   81.97 sec
+      Start 10: GPIIntegratedEndToEnd
+10/12 Test #10: GPIIntegratedEndToEnd ............   Passed   79.51 sec
+      Start 11: GPIGuiSelfTest
+11/12 Test #11: GPIGuiSelfTest ...................   Passed    0.51 sec
+      Start 12: GPIGenerativeProjectEndToEnd
+12/12 Test #12: GPIGenerativeProjectEndToEnd .....   Passed  210.67 sec
+
+100% tests passed, 0 tests failed out of 12
+
+Total Test time (real) = 745.18 sec

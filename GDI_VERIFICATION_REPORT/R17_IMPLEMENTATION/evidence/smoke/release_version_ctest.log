@@ -1,0 +1,9 @@
+Test project D:/2_antigravity_GDI/build_r17
+    Start  6: GDIR17AseiTests
+1/2 Test  #6: GDIR17AseiTests ..................   Passed    0.06 sec
+    Start 11: GPIGuiSelfTest
+2/2 Test #11: GPIGuiSelfTest ...................   Passed    2.52 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   2.59 sec

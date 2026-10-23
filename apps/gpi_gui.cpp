@@ -12,6 +12,9 @@
 #include "gpi/behavioral_induction.hpp"
 #include "gpi/developmental_intelligence.hpp"
 #include "gpi/foreign_project_intelligence.hpp"
+#include "gpi/build_contract.hpp"
+#include "gpi/development_strategy.hpp"
+#include "gpi/autonomous_software_engineering.hpp"
 #include "gpi/goal_architect.hpp"
 #include "gpi/project_blueprint.hpp"
 #include "gpi/project_manifest.hpp"
@@ -156,28 +159,30 @@ std::filesystem::path uniqueRunDirectory(const std::filesystem::path& root) {
 
 enum class GuiMode {
     ForeignProject = 0,
-    AutonomousPlanner = 1,
-    DevelopmentalIntelligence = 2,
-    Behavioral = 3,
-    Architecture = 4,
-    Blueprint = 5,
-    Integrated = 6
+    R17Development = 1,
+    AutonomousPlanner = 2,
+    DevelopmentalIntelligence = 3,
+    Behavioral = 4,
+    Architecture = 5,
+    Blueprint = 6,
+    Integrated = 7
 };
 
 GuiMode currentGuiMode() {
     const LRESULT sel=SendMessageW(g_architecture,CB_GETCURSEL,0,0);
     if(sel==0)return GuiMode::ForeignProject;
-    if(sel==1)return GuiMode::AutonomousPlanner;
-    if(sel==2)return GuiMode::DevelopmentalIntelligence;
-    if(sel==3)return GuiMode::Behavioral;
-    if(sel==4)return GuiMode::Architecture;
-    if(sel==5)return GuiMode::Blueprint;
+    if(sel==1)return GuiMode::R17Development;
+    if(sel==2)return GuiMode::AutonomousPlanner;
+    if(sel==3)return GuiMode::DevelopmentalIntelligence;
+    if(sel==4)return GuiMode::Behavioral;
+    if(sel==5)return GuiMode::Architecture;
+    if(sel==6)return GuiMode::Blueprint;
     return GuiMode::Integrated;
 }
 
 bool generativeSpecMode() {
     const auto mode=currentGuiMode();
-    return mode==GuiMode::ForeignProject||mode==GuiMode::AutonomousPlanner||
+    return mode==GuiMode::ForeignProject||mode==GuiMode::R17Development||mode==GuiMode::AutonomousPlanner||
            mode==GuiMode::DevelopmentalIntelligence||mode==GuiMode::Behavioral||
            mode==GuiMode::Architecture||mode==GuiMode::Blueprint;
 }
@@ -186,7 +191,11 @@ std::filesystem::path examplePath(GuiMode mode) {
     const auto bin=executableDirectory();
     for(const auto& root:{bin,bin.parent_path(),bin.parent_path().parent_path()}) {
         std::filesystem::path candidate;
-        if(mode==GuiMode::ForeignProject) {
+        if(mode==GuiMode::R17Development) {
+            candidate=root/L"examples"/L"r17_neutral_project";
+            if(std::filesystem::is_directory(candidate))return std::filesystem::absolute(candidate);
+            continue;
+        } else if(mode==GuiMode::ForeignProject) {
             candidate=root/L"examples"/L"foreign_telemetry_project";
             if(!std::filesystem::is_directory(candidate))
                 candidate=root/L"examples"/L"repair_header_project";
@@ -449,7 +458,29 @@ void analyzeGoal() {
     try {
         std::wostringstream report;
         const auto mode=currentGuiMode();
-        if(mode==GuiMode::ForeignProject) {
+        if(mode==GuiMode::R17Development) {
+            const auto project=textOf(g_behavior);
+            const auto requirement=textOf(g_prompt);
+            if(project.empty()||requirement.empty())throw std::invalid_argument("Projektordner und neue Entwicklungsanforderung sind erforderlich.");
+            const std::filesystem::path projectRoot(project);
+            if(!std::filesystem::is_directory(projectRoot))throw std::invalid_argument("Der angegebene Projektordner existiert nicht.");
+            const auto requirementContract=genomic::gpi::interpretDevelopmentRequirement(narrow(requirement));
+            if(requirementContract.status!=genomic::gpi::RequirementStatus::Clarified)throw std::invalid_argument("Die Anforderung ist nicht sicher im R17-Syntheseumfang klassifizierbar.");
+            const auto build=genomic::gpi::discoverBuildContract(projectRoot);
+            const auto impact=genomic::gpi::analyzeChangeImpact(projectRoot,build,requirementContract);
+            const auto architecture=genomic::gpi::synthesizeArchitectureChange(requirementContract,impact,build);
+            report<<L"R17 – AUTONOME SOFTWAREERWEITERUNG (isoliert)\r\n\r\n"
+                  <<L"Buildvertrag: "<<widen(genomic::gpi::toString(build.buildSystem))
+                  <<L"    Ziele: "<<build.targets.size()
+                  <<L"\r\nAnforderung: "<<widen(requirementContract.capabilityClass)
+                  <<L"    Vertrauen: "<<requirementContract.confidence
+                  <<L"\r\nImpact-Knoten: "<<impact.nodes.size()
+                  <<L"    Architektur: "<<widen(architecture.selectedAlternative)
+                  <<L"\r\nGenerierte Komponenten: "<<widen(architecture.headerPath)<<L", "<<widen(architecture.sourcePath)
+                  <<L"\r\nAkzeptanzkriterien: "<<requirementContract.acceptance.size()
+                  <<L"\r\n[Sicherheitsgrenze] Die Ausfuehrung erzeugt und prueft nur eine isolierte Arbeitskopie; Originalquellen bleiben read-only.";
+            g_contractAccepted=true;
+        } else if(mode==GuiMode::ForeignProject) {
             std::wstring rawPath=textOf(g_behavior);
             while(!rawPath.empty()&&(rawPath.back()==L'\r'||rawPath.back()==L'\n'||rawPath.back()==L' '||rawPath.back()==L'\t'))rawPath.pop_back();
             while(!rawPath.empty()&&(rawPath.front()==L'\r'||rawPath.front()==L'\n'||rawPath.front()==L' '||rawPath.front()==L'\t'))rawPath.erase(rawPath.begin());
@@ -629,6 +660,10 @@ void changeMode() {
     if(mode==GuiMode::ForeignProject) {
         SetWindowTextW(GetDlgItem(g_window,2001),L"FREMDES C++20-PROJEKT (Ordnerpfad – Read-Only Analyse & Hypothesen)");
         SetWindowTextW(g_behaviorOpen,L"Ordner oeffnen");
+    } else if(mode==GuiMode::R17Development) {
+        SetWindowTextW(GetDlgItem(g_window,2001),L"ZIELPROJEKT (Ordnerpfad – R17 entwickelt nur isolierte Kopie)");
+        SetWindowTextW(GetDlgItem(g_window,2000),L"NEUE ENTWICKLUNGSANFORDERUNG");
+        SetWindowTextW(g_behaviorOpen,L"Ordner oeffnen");
     } else if(mode==GuiMode::AutonomousPlanner) {
         SetWindowTextW(GetDlgItem(g_window,2001),L"UEBERGEORDNETES ZIEL (Autonomer ontogenetischer Entwicklungsplaner)");
         SetWindowTextW(g_behaviorOpen,L"Datei oeffnen");
@@ -661,7 +696,7 @@ void loadBehavior(const std::filesystem::path& file) {
 }
 
 void openBehaviorFile() {
-    if(currentGuiMode()==GuiMode::ForeignProject) {
+    if(currentGuiMode()==GuiMode::ForeignProject||currentGuiMode()==GuiMode::R17Development) {
         BROWSEINFOW info{};info.hwndOwner=g_window;info.lpszTitle=L"Fremdes C++20-Projektverzeichnis zur Read-Only-Analyse auswaehlen";
         info.ulFlags=BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
         if(PIDLIST_ABSOLUTE item=SHBrowseForFolderW(&info)) {
@@ -711,6 +746,16 @@ void loadExample() {
             g_contractAccepted=false;EnableWindow(g_run,FALSE);
             return;
         }
+        if(mode==GuiMode::R17Development) {
+            const auto bin=executableDirectory();
+            for(const auto& root:{bin,bin.parent_path(),bin.parent_path().parent_path()}) {
+                const auto project=root/L"examples"/L"r17_neutral_project";
+                if(std::filesystem::is_directory(project)) {SetWindowTextW(g_behavior,std::filesystem::absolute(project).wstring().c_str());break;}
+            }
+            SetWindowTextW(g_prompt,L"Add persistent session state that is saved, restored after restart, and rejected when corrupted.");
+            g_contractAccepted=false;EnableWindow(g_run,FALSE);
+            return;
+        }
         if(!example.empty())loadBehavior(example);
         else {
             std::wstring fallback=defaultBehavior();
@@ -733,6 +778,7 @@ void loadExample() {
 std::wstring selectedArchitecture() {
     const auto mode=currentGuiMode();
     if(mode==GuiMode::ForeignProject)return L"foreign";
+    if(mode==GuiMode::R17Development)return L"r17";
     if(mode==GuiMode::AutonomousPlanner)return L"planner";
     if(mode==GuiMode::DevelopmentalIntelligence)return L"intelligence";
     if(mode==GuiMode::Behavioral)return L"behavior";
@@ -747,11 +793,12 @@ std::wstring selectedArchitecture() {
     return L"compare";
 }
 
-void runChild(std::wstring input,std::filesystem::path compiler,std::filesystem::path root,
+void runChild(std::wstring input,std::wstring requirement,std::filesystem::path compiler,std::filesystem::path root,
               std::wstring architecture,unsigned cycles,bool useMemory) {
     DWORD exitCode=1;
     try {
         const bool isForeign=architecture==L"foreign";
+        const bool isR17=architecture==L"r17";
         const bool isPlanner=architecture==L"planner";
         const bool isIntelligence=architecture==L"intelligence";
         const bool isBehavior=architecture==L"behavior";
@@ -759,7 +806,7 @@ void runChild(std::wstring input,std::filesystem::path compiler,std::filesystem:
         const bool isBlueprint=architecture==L"blueprint";
         const auto bin=executableDirectory();
         std::wstring exeName=L"gpi_integrated.exe";
-        if(isForeign||isPlanner||isIntelligence)exeName=L"gdi_intelligence.exe";
+        if(isForeign||isR17||isPlanner||isIntelligence)exeName=L"gdi_intelligence.exe";
         else if(isBehavior)exeName=L"gdi_create.exe";
         else if(isArchitect)exeName=L"gpi_architect.exe";
         else if(isBlueprint)exeName=L"gpi_synthesize.exe";
@@ -773,7 +820,16 @@ void runChild(std::wstring input,std::filesystem::path compiler,std::filesystem:
         auto* folder=new std::wstring(runDirectory.wstring());
         if(!PostMessageW(g_window,WM_GPI_DIRECTORY,0,reinterpret_cast<LPARAM>(folder)))delete folder;
         std::wstring command=quote(executable.wstring());
-        if(isForeign) {
+        if(isR17) {
+            std::wstring cleanPath=input;
+            while(!cleanPath.empty()&&(cleanPath.back()==L'\r'||cleanPath.back()==L'\n'||cleanPath.back()==L' '||cleanPath.back()==L'\t'))cleanPath.pop_back();
+            while(!cleanPath.empty()&&(cleanPath.front()==L'\r'||cleanPath.front()==L'\n'||cleanPath.front()==L' '||cleanPath.front()==L'\t'))cleanPath.erase(cleanPath.begin());
+            command+=L" --foreign-project "+quote(cleanPath)+
+                L" --development-requirement "+quote(requirement)+
+                L" --workspace "+quote((runDirectory/L"r17_workspace").wstring())+
+                L" --compiler "+quote(compiler.wstring())+
+                L" --r17-execute --strategy-memory "+quote((root/L"gdi_gui_r17_strategies.gdis").wstring());
+        } else if(isForeign) {
             const auto sandbox=bin/L"gpi_sandbox.exe";
             if(!std::filesystem::is_regular_file(sandbox))
                 throw std::runtime_error("gpi_sandbox.exe is missing beside the GUI (fail closed)");
@@ -786,7 +842,8 @@ void runChild(std::wstring input,std::filesystem::path compiler,std::filesystem:
                 L" --sandbox "+quote(sandbox.wstring())+
                 L" --cycles "+std::to_wstring(cycles)+
                 L" --project-memory "+quote((root/L"gdi_gui_foreign_projects.gdipm").wstring())+
-                L" --dev-memory "+quote((root/L"gdi_gui_dev_principles.gdidp").wstring());
+                L" --dev-memory "+quote((root/L"gdi_gui_dev_principles.gdidp").wstring())+
+                L" --execute-strategy --strategy-memory "+quote((root/L"gdi_gui_strategies.gdis").wstring());
             if(useMemory) {
                 command+=L" --memory "+quote((root/L"gdi_gui_components.memory").wstring())+
                          L" --repair-memory "+quote((root/L"gdi_gui_experience.memory").wstring());
@@ -895,11 +952,20 @@ void startRun() {
         const auto mode=currentGuiMode();
         const auto genSpec=generativeSpecMode();
         const auto input=genSpec?textOf(g_behavior):textOf(g_prompt);
+        const auto requirement=mode==GuiMode::R17Development?textOf(g_prompt):L"";
         const auto compiler=textOf(g_compiler),workspace=textOf(g_workspace);
         if(input.empty()||compiler.empty()||workspace.empty())
             throw std::invalid_argument("Ziel, Compiler und Arbeitsordner sind erforderlich.");
         if(!g_contractAccepted)throw std::invalid_argument("Bitte zuerst das Ziel analysieren.");
-        if(mode==GuiMode::ForeignProject) {
+        if(mode==GuiMode::R17Development) {
+            if(requirement.empty())throw std::invalid_argument("Bitte eine neue Entwicklungsanforderung eingeben.");
+            std::wstring cleanPath=input;
+            while(!cleanPath.empty()&&(cleanPath.back()==L'\r'||cleanPath.back()==L'\n'||cleanPath.back()==L' '||cleanPath.back()==L'\t'))cleanPath.pop_back();
+            while(!cleanPath.empty()&&(cleanPath.front()==L'\r'||cleanPath.front()==L'\n'||cleanPath.front()==L' '||cleanPath.front()==L'\t'))cleanPath.erase(cleanPath.begin());
+            if(!std::filesystem::is_directory(std::filesystem::path(cleanPath)))throw std::invalid_argument("Der Projektordner existiert nicht.");
+            const auto contract=genomic::gpi::interpretDevelopmentRequirement(narrow(requirement));
+            if(contract.status!=genomic::gpi::RequirementStatus::Clarified)throw std::invalid_argument("Anforderung liegt ausserhalb des sicheren R17-Syntheseumfangs.");
+        } else if(mode==GuiMode::ForeignProject) {
             std::wstring cleanPath=input;
             while(!cleanPath.empty()&&(cleanPath.back()==L'\r'||cleanPath.back()==L'\n'||cleanPath.back()==L' '||cleanPath.back()==L'\t'))cleanPath.pop_back();
             while(!cleanPath.empty()&&(cleanPath.front()==L'\r'||cleanPath.front()==L'\n'||cleanPath.front()==L' '||cleanPath.front()==L'\t'))cleanPath.erase(cleanPath.begin());
@@ -927,7 +993,7 @@ void startRun() {
         SetWindowTextW(g_log,L"");g_lastRunDirectory.clear();
         setRunning(true,L"Entwicklung laeuft ...");
         if(g_worker.joinable())g_worker.join();
-        g_worker=std::thread(runChild,input,std::filesystem::path(compiler),root,architecture,cycles,memory);
+        g_worker=std::thread(runChild,input,requirement,std::filesystem::path(compiler),root,architecture,cycles,memory);
         // Unique run path is emitted by the worker, and shown in the result pane.
     } catch(const std::exception& error) {
         setRunning(false,L"Start fehlgeschlagen");
@@ -1015,7 +1081,8 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM wParam,LPARAM l
         g_stop=makeControl(WC_BUTTONW,L"Abbrechen",BS_PUSHBUTTON,ID_STOP);EnableWindow(g_run,FALSE);EnableWindow(g_stop,FALSE);
         g_architecture=makeControl(WC_COMBOBOXW,L"",CBS_DROPDOWNLIST|WS_VSCROLL,ID_ARCHITECTURE);
         for(const wchar_t* item:{
-            L"GDI – Fremdes C++20-Projekt erschliessen & weiterentwickeln (Read-Only + Dual-Memory)",
+            L"GDI – Fremdprojekt: Buildvertrag, Baseline, Strategie & Entwicklung (Read-Only)",
+            L"GDI R17 – Neue Softwarefunktion aus Anforderung entwickeln (isoliert)",
             L"GDI – Autonomer ontogenetischer Entwicklungsplaner (Ziel -> eigenes Curriculum)",
             L"GDI – Autonome Entwicklungsintelligenz (.curriculum / Ontogenese)",
             L"GDI – Software aus Verhaltensbeispielen (.behavior)",
@@ -1104,11 +1171,39 @@ int selfTest() {
     const auto example=genomic::gpi::parseBehavioralGoalText(narrow(defaultBehavior()));
     const auto archGoal=genomic::gpi::parseTypedArchitectureGoalText(narrow(defaultArchitectureGoal()));
     const auto bpSpec=genomic::gpi::parseProjectBlueprintText(narrow(defaultBlueprintSpec()));
-    const auto foreignEx=examplePath(GuiMode::ForeignProject);
-    bool foreignOk=true;
+    // The foreign telemetry example intentionally contains only sources.  It
+    // remains useful for source analysis, but cannot establish a build
+    // contract.  Exercise the GUI's R15/R16 integration with the dedicated
+    // multi-target CMake fixture instead.
+    std::filesystem::path foreignEx;
+    const auto bin=executableDirectory();
+    for(const auto& root:{bin,bin.parent_path(),bin.parent_path().parent_path()}) {
+        const auto candidate=root/L"examples"/L"r15_multitarget";
+        if(std::filesystem::is_directory(candidate)) {
+            foreignEx=std::filesystem::absolute(candidate);
+            break;
+        }
+    }
+    if(foreignEx.empty()) foreignEx=examplePath(GuiMode::ForeignProject);
+    bool foreignOk=true,buildContractOk=true,strategyOk=true,r17Ok=true;
     if(!foreignEx.empty()&&std::filesystem::is_directory(foreignEx)) {
         const auto fpAnalysis=genomic::gpi::analyzeForeignCpp20Project(foreignEx);
-        foreignOk=!fpAnalysis.modules.empty()&&!fpAnalysis.hypotheses.empty();
+        // A successful analysis of a healthy project may legitimately produce
+        // no repair hypotheses.  Module discovery is the relevant integration
+        // criterion here.
+        foreignOk=!fpAnalysis.modules.empty();
+        const auto contract=genomic::gpi::discoverBuildContract(foreignEx);
+        buildContractOk=contract.buildSystem!=genomic::gpi::BuildSystemKind::Unknown&&!contract.discoveryEvidence.empty();
+        genomic::gpi::StrategyPlanningRequest request;
+        request.goal="GUI R15/R16 integration self-test";request.contract=contract;
+        const auto strategy=genomic::gpi::AutonomousStrategyPlanner().plan(request);
+        strategyOk=strategy.executable&&!strategy.selected.operators.empty();
+        const auto requirement=genomic::gpi::interpretDevelopmentRequirement(
+            "Add persistent session state that is saved, restored after restart, and rejected when corrupted.");
+        const auto impact=genomic::gpi::analyzeChangeImpact(foreignEx,contract,requirement);
+        const auto architecture=genomic::gpi::synthesizeArchitectureChange(requirement,impact,contract);
+        r17Ok=requirement.status==genomic::gpi::RequirementStatus::Clarified&&
+              !impact.nodes.empty()&&architecture.executable;
     }
     const bool passed=accepted.supported&&accepted.contract.accepted&&!accepted.graph.empty()&&
            (!rejected.supported||!rejected.contract.accepted)&&
@@ -1117,7 +1212,7 @@ int selfTest() {
            example.functions.size()>=2&&!example.types.empty()&&!example.modules.empty()&&
            archGoal.functions.size()>=2&&!archGoal.types.empty()&&!archGoal.modules.empty()&&
            bpSpec.functions.size()>=2&&!bpSpec.types.empty()&&!bpSpec.modules.empty()&&
-           foreignOk;
+           foreignOk&&buildContractOk&&strategyOk&&r17Ok;
     const auto executable=std::filesystem::absolute(executablePath());
     std::ofstream evidence(executableDirectory()/"gdi_gui_self_test.json",std::ios::binary|std::ios::trunc);
     evidence<<"{\n  \"format\": \"gdi-gui-self-test-v1\",\n"
@@ -1125,7 +1220,10 @@ int selfTest() {
             <<"  \"engine_version\": \""<<GDI_ENGINE_VERSION<<"\",\n"
             <<"  \"compiler\": \"GCC "<<__VERSION__<<"\",\n"
             <<"  \"process_path\": \""<<executable.generic_string()<<"\",\n"
-            <<"  \"foreign_project_analysis\": "<<(foreignOk?"true":"false")<<"\n}\n";
+            <<"  \"foreign_project_analysis\": "<<(foreignOk?"true":"false")<<",\n"
+            <<"  \"build_contract_integration\": "<<(buildContractOk?"true":"false")<<",\n"
+            <<"  \"strategy_planner_integration\": "<<(strategyOk?"true":"false")<<",\n"
+            <<"  \"r17_requirement_pipeline\": "<<(r17Ok?"true":"false")<<"\n}\n";
     return passed&&evidence?0:1;
 }
 }

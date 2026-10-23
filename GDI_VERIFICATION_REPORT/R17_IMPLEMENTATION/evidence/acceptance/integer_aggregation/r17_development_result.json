@@ -1,0 +1,9 @@
+{
+  "format": "GDIR17R1",
+  "outcome": "COMPLETE",
+  "requirement": "req:82ae6d62e3c0b734",
+  "component": "r17_integer_aggregation",
+  "changes": 4,
+  "acceptance": 3,
+  "original_untouched": true
+}
