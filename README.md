@@ -48,7 +48,23 @@ ctest --test-dir build --output-on-failure
 
 Der Referenzstand wird mit Warnungen als Fehler (`-Wall -Wextra -Wpedantic -Werror`) gebaut. Die aktuelle Windows-Regression umfasst neun Unit- und End-to-End-Tests, darunter reale externe Kompilierungen und sandbox-isolierte Ausführungen.
 
-## Desktop-Oberfläche – GDI v1.4.0
+## Desktop-Oberfläche – GDI v1.4.1
+
+## KR-Projekte vollständig verifizieren
+
+`gdi_intelligence --kr-e2e` führt einen geschützten KR-End-to-End-Nachweis aus. GDI kopiert nur Primärquellen in einen isolierten Arbeitsbereich, lässt `KR_BUILD` durch die unveränderte KR-Compiler-Engine neu erzeugen, verlangt die tatsächlich benötigten Rust-/Go-Archive und SDL-Laufzeitdateien, startet das erzeugte Windows-Programm zeitbegrenzt bis zu einem expliziten Bereitschaftsmarker und kompiliert namenunabhängige ABI-Funktionstests aus semantisch ableitbaren KR-/Go-/Rust-Verträgen.
+
+```powershell
+.\gdi_intelligence.exe --kr-e2e `
+  --foreign-project F:\MDRAFTNE `
+  --workspace D:\gdi-runs\mdraftne-e2e `
+  --compiler D:\android_project\windows\toolchain\bin\g++.exe `
+  --kr-java D:\android_project\windows\runtime\jdk\bin\java.exe `
+  --kr-compiler-jar D:\android_project\windows\dist\KR-Compiler-IDE.jar `
+  --runtime-ready-marker "START: Erster Frame gerendert"
+```
+
+Ein Erfolg setzt Build, benötigte Spracharchive, SDL-Staging, Programmstart, Bereitschaftsmarker, ABI-Funktionstests und einen identischen SHA-256-Hash des geschützten Originals voraus. Vorhandene Dateien unter `KR_BUILD` werden nicht als Eingabe übernommen.
 
 Unter Windows baut CMake die **aktualisierte native GDI-Oberfläche** als `gpi_gui.exe` und
 legt daneben automatisch eine identische `gdi_gui.exe` an. Die alte ausführbare Datei

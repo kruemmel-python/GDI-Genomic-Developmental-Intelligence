@@ -212,6 +212,46 @@ struct ForeignProjectDevelopmentResult {
     std::filesystem::path reportPath;
 };
 
+// Full, toolchain-native verification for KR Unified Language projects. The
+// protected project is copied without KR_BUILD into an isolated directory;
+// the real KR compiler then regenerates and links C++, Rust, Go, and native
+// dependencies. A bounded runtime probe must reach an explicit readiness
+// marker, and derivable scalar cross-language contracts are exercised through
+// the produced Rust/Go archives.
+struct KrProjectEndToEndConfig {
+    std::filesystem::path protectedProjectRoot;
+    std::filesystem::path isolatedWorkspace;
+    std::filesystem::path javaExecutable;
+    std::filesystem::path krCompilerJar;
+    std::filesystem::path cppCompiler;
+    std::string runtimeReadyMarker;
+    std::size_t buildTimeoutMilliseconds{600000};
+    std::size_t runtimeProbeMilliseconds{8000};
+};
+
+struct KrProjectEndToEndResult {
+    bool buildPassed{false};
+    bool rustLinked{false};
+    bool goLinked{false};
+    bool sdlLinked{false};
+    bool runtimeStarted{false};
+    bool runtimeReady{false};
+    bool abiFunctionalTestsPassed{false};
+    bool originalProjectUntouched{false};
+    std::string originalSha256Before;
+    std::string originalSha256After;
+    std::filesystem::path isolatedProjectRoot;
+    std::filesystem::path executablePath;
+    std::filesystem::path reportPath;
+    std::vector<std::string> diagnostics;
+
+    bool success() const noexcept {
+        return buildPassed && rustLinked && goLinked && sdlLinked &&
+               runtimeStarted && runtimeReady && abiFunctionalTestsPassed &&
+               originalProjectUntouched;
+    }
+};
+
 // Computes a deterministic hash over all files and relative paths in a directory tree
 // to enforce and prove the read-only safety boundary on foreign projects.
 std::uint64_t computeDirectoryTreeHash(const std::filesystem::path& rootDir);
@@ -229,5 +269,8 @@ ForeignProjectAnalysisReport analyzeForeignCpp20Project(
 // Synthesize/Repair/Extend -> Compile & Sandbox Verify -> Consolidate Project & Developmental Memory.
 ForeignProjectDevelopmentResult runForeignProjectDevelopmentalLoop(
     const ForeignProjectDevelopmentConfig& config);
+
+KrProjectEndToEndResult verifyKrProjectEndToEnd(
+    const KrProjectEndToEndConfig& config);
 
 } // namespace genomic::gpi

@@ -1,5 +1,9 @@
 # GDI-Verifikation – Zusammenfassung
 
+## MDRAFTNE-End-to-End-Nachtrag
+
+Die zuvor offene reale KR-Integration ist für den Windows-x64-Pfad nachgewiesen: GDI erzeugte MDRAFTNE aus den `.kr`-Primärquellen vollständig neu, band echte Rust- und Go-Archive sowie SDL3 ein, linkte `programm.exe`, startete die Anwendung und beobachtete SDL-Initialisierung, Fenster, Renderer, Eventloop, ersten Frame und 300 Frames. Ein aus den sprachübergreifenden Primärverträgen generierter Funktionstest bestand. Der geschützte Originalbaum blieb SHA-256-identisch. Nicht behauptet wird damit eine vollständige Automation aller interaktiven Editor-, Picker- und Android-Arbeitsabläufe.
+
 Status nach Implementierungsphase: **PARTIAL**
 
 Neu implementiert in GDI 1.4.0: SHA-256-Importmanifeste, Symlink/Junction- und Workspace-Schutz, strukturierte Compilerdiagnosen, explizite Kampagnenabbruchgründe, namensunabhängige begrenzte KR/Go/Rust-Skalar-ABI-Synthese sowie ein verbindlicher `gdi_gui.exe`-Buildalias mit Self-Test-Evidenz. Der saubere Abschlussbuild bestand erneut mit 10/10 Tests.

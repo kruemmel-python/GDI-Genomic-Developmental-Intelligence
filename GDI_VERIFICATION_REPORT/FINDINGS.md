@@ -15,5 +15,5 @@ Status: **PARTIAL**. `gpi_gui.exe` ist vorhanden und getestet; `gdi_gui.exe` feh
 ## Bewertungsgrenzen
 
 - Kein Beleg für vollständige ISO-C++20-Konformität.
-- MDRAFTNE `PASS` ist kein vollständiger Programmbeleg.
+- MDRAFTNE besitzt nun einen vollständigen Windows-x64-Build-, Link- und Startbeleg mit echten Go-/Rust-Archiven, SDL3, erstem Frame und ABI-Funktionstest. Nicht abgedeckt sind alle interaktiven GUI-/Picker-Abläufe und der Android-Gerätelauf.
 - Namensspezifische ABI-Synthese ist keine allgemeine Sprachübersetzung.

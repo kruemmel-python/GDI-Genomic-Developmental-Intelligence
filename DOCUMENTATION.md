@@ -481,7 +481,13 @@ Beispiel-Aufruf (Fremdes C++20-Projekt analysieren & weiterentwickeln):
   --cycles 6
 ```
 
-## 18. GDI v1.4.0 – Integrierte Windows-Entwicklungsoberfläche
+## 18. GDI v1.4.1 – Integrierte Windows-Entwicklungsoberfläche
+
+### KR Unified Language End-to-End
+
+Der Modus `gdi_intelligence --kr-e2e` verbindet die Fremdprojektanalyse mit der realen, unveränderten KR-Compiler-Engine. Der Import verwirft vorhandene generierte `KR_BUILD`-Artefakte und rekonstruiert in einem isolierten Verzeichnis C++20-Translation-Units, Rust- und Go-Bibliotheken sowie das Windows-/SDL-Programm. Anschließend werden semantisch ableitbare skalare ABI-Verträge in einen eigenständigen C++20-Grenzfalltest übersetzt, gegen die real erzeugten Archive gelinkt und ausgeführt. Der Programmstart gilt erst nach einem konfigurierten Laufzeitmarker als bereit. Vorher-/Nachher-SHA-256-Manifeste sichern die Unveränderlichkeit des Originals.
+
+Der externe Regressionstest ist absichtlich opt-in (`GDI_ENABLE_KR_E2E_TEST`), weil er eine reale KR-Installation und ein geschütztes Testprojekt benötigt. Ohne zugängliche Primärsemantik oder expliziten Bereitschaftsmarker meldet der Modus keinen vollständigen Erfolg.
 
 Die native Win32-Anwendung `gpi_gui.exe` (sowie der Alias `gdi_gui.exe`) unterstützt die Fremdprojekt-Erschließung, den autonomen Entwicklungsplaner, die ontogenetische Entwicklungsintelligenz und sämtliche generativen Pipelines direkt aus einer Oberfläche:
 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.4.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.4.1 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -157,6 +157,12 @@ add_executable(test_generative_project tests/test_generative_project.cpp)
 target_link_libraries(test_generative_project PRIVATE genomic_core)
 
 enable_testing()
+
+option(GDI_ENABLE_KR_E2E_TEST "Enable the external KR/Go/Rust/SDL project end-to-end test" OFF)
+set(GDI_KR_E2E_PROJECT "" CACHE PATH "Protected KR project used by the opt-in end-to-end test")
+set(GDI_KR_JAVA "" CACHE FILEPATH "Java executable bundled with the KR compiler")
+set(GDI_KR_COMPILER_JAR "" CACHE FILEPATH "KR Compiler IDE jar")
+set(GDI_KR_RUNTIME_READY_MARKER "" CACHE STRING "Runtime log marker required by the KR end-to-end test")
 if(WIN32)
     add_test(NAME GDIBehavioralInductionEndToEnd
         COMMAND test_behavioral_induction "${CMAKE_CXX_COMPILER}"
@@ -223,4 +229,21 @@ else()
     add_test(NAME GPIGenerativeProjectEndToEnd
         COMMAND test_generative_project "${CMAKE_CXX_COMPILER}"
             "${CMAKE_CURRENT_BINARY_DIR}/gpi_generative_project_e2e")
+endif()
+
+if(GDI_ENABLE_KR_E2E_TEST)
+    if(NOT EXISTS "${GDI_KR_E2E_PROJECT}" OR NOT EXISTS "${GDI_KR_JAVA}" OR NOT EXISTS "${GDI_KR_COMPILER_JAR}")
+        message(FATAL_ERROR "GDI_ENABLE_KR_E2E_TEST requires GDI_KR_E2E_PROJECT, GDI_KR_JAVA, and GDI_KR_COMPILER_JAR")
+    endif()
+    add_test(NAME GDIKrProjectEndToEnd
+        COMMAND ${CMAKE_COMMAND}
+            "-DGDI_INTELLIGENCE=$<TARGET_FILE:gdi_intelligence>"
+            "-DKR_PROJECT=${GDI_KR_E2E_PROJECT}"
+            "-DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/gdi_kr_project_e2e"
+            "-DCPP_COMPILER=${CMAKE_CXX_COMPILER}"
+            "-DKR_JAVA=${GDI_KR_JAVA}"
+            "-DKR_COMPILER_JAR=${GDI_KR_COMPILER_JAR}"
+            "-DRUNTIME_READY_MARKER=${GDI_KR_RUNTIME_READY_MARKER}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/gdi_kr_end_to_end.cmake")
+    set_tests_properties(GDIKrProjectEndToEnd PROPERTIES TIMEOUT 900)
 endif()

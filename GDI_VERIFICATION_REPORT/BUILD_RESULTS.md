@@ -8,3 +8,5 @@
 - `gdi_gui` ist kein CMake-Target, sondern nur als optionale Kopie von `gpi_gui` vorgesehen; diese Datei fehlte nach dem Prüfbuild.
 
 Die anfängliche Pfadfehlinterpretation durch das zuerst im `PATH` gefundene MSYS-CMake war **kein** Fehler von GDI oder der KR-Toolchain. Mit nativer Windows-CMake funktionierte derselbe KR-Compiler sofort.
+
+Nach Integration des KR-End-to-End-Modus wurde `build_completion` erneut seriell mit GCC 16.1.0 und den bestehenden strikten C++20-Warnflags gebaut. Alle Ziele wurden erfolgreich erzeugt. Die anschließende CTest-Suite bestand 11/11 Tests in 582,42 Sekunden.

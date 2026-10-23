@@ -1,5 +1,6 @@
 #include "gpi/foreign_project_intelligence.hpp"
 #include "gpi/filesystem_safety.hpp"
+#include "gpi/process_runner.hpp"
 
 #include "cpp20/cpp20_preprocessor.hpp"
 #include "gpi/experience_store.hpp"
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <chrono>
 #include <fstream>
 #include <map>
 #include <regex>
@@ -1891,6 +1893,186 @@ ForeignProjectDevelopmentResult runForeignProjectDevelopmentalLoop(
     json << "]\n}\n";
     writeFileString(result.reportPath, json.str());
 
+    return result;
+}
+
+KrProjectEndToEndResult verifyKrProjectEndToEnd(const KrProjectEndToEndConfig& config) {
+    using namespace std::chrono;
+    if (config.protectedProjectRoot.empty() || !std::filesystem::is_directory(config.protectedProjectRoot))
+        throw std::invalid_argument("KR E2E requires an existing protected project root");
+    validateIsolatedWorkspace(config.protectedProjectRoot, config.isolatedWorkspace);
+    if (config.isolatedWorkspace.empty() ||
+        (std::filesystem::exists(config.isolatedWorkspace) && !std::filesystem::is_empty(config.isolatedWorkspace)))
+        throw std::invalid_argument("KR E2E isolated workspace must be new or empty");
+    for (const auto& path : {config.javaExecutable, config.krCompilerJar, config.cppCompiler})
+        if (path.empty() || !std::filesystem::is_regular_file(path))
+            throw std::invalid_argument("KR E2E tool path does not exist: " + path.string());
+    if (config.buildTimeoutMilliseconds == 0 || config.runtimeProbeMilliseconds == 0)
+        throw std::invalid_argument("KR E2E timeouts must be positive");
+
+    KrProjectEndToEndResult result;
+    const auto before = createSha256DirectoryManifest(config.protectedProjectRoot);
+    result.originalSha256Before = before.sha256;
+    result.isolatedProjectRoot = config.isolatedWorkspace / "project";
+    std::filesystem::create_directories(result.isolatedProjectRoot);
+
+    // Import only primary/project files. KR_BUILD is compiler-owned generated
+    // output and must be reconstructed, never trusted or copied as input.
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(config.protectedProjectRoot)) {
+        const auto relative = std::filesystem::relative(entry.path(), config.protectedProjectRoot);
+        if (!relative.empty() && *relative.begin() == "KR_BUILD") {
+            continue;
+        }
+        const auto destination = result.isolatedProjectRoot / relative;
+        if (entry.is_directory()) std::filesystem::create_directories(destination);
+        else if (entry.is_regular_file()) {
+            std::filesystem::create_directories(destination.parent_path());
+            std::filesystem::copy_file(entry.path(), destination, std::filesystem::copy_options::overwrite_existing);
+        }
+    }
+
+    const auto analysis = analyzeForeignCpp20Project(config.protectedProjectRoot);
+    bool needsRust = false, needsGo = false, needsSdl = false;
+    for (const auto& file : analysis.krSourceFiles) {
+        const auto text = readFileString(config.protectedProjectRoot / file);
+        needsRust = needsRust || text.find("@rust") != std::string::npos || text.find("extern \"C\" fn") != std::string::npos;
+        needsGo = needsGo || text.find("@go") != std::string::npos || text.find("//export ") != std::string::npos;
+        needsSdl = needsSdl || text.find("SDL_") != std::string::npos || text.find("SDL3/") != std::string::npos;
+    }
+
+    const auto helper = config.isolatedWorkspace / "KrBuildCli.java";
+    writeFileString(helper,
+        "import java.io.File;\n"
+        "import kr.compile.CompilerEngine;\n"
+        "public final class KrBuildCli {\n"
+        "  public static void main(String[] args) throws Exception {\n"
+        "    CompilerEngine e=new CompilerEngine(new File(args[0]).getCanonicalFile(),"
+        "CompilerEngine.Target.WINDOWS,false,System.out::println);\n"
+        "    File a=e.build(); System.out.println(\"KR_BUILD_ARTIFACT=\"+a.getCanonicalPath());\n"
+        "  }\n"
+        "}\n");
+    const auto buildOut = config.isolatedWorkspace / "kr_build.stdout.log";
+    const auto buildErr = config.isolatedWorkspace / "kr_build.stderr.log";
+    const auto build = runProcess({config.javaExecutable.string(), "--class-path", config.krCompilerJar.string(),
+                                   helper.string(), result.isolatedProjectRoot.string()},
+                                  config.krCompilerJar.parent_path(), {}, buildOut, buildErr,
+                                  milliseconds(config.buildTimeoutMilliseconds));
+    const auto buildText = (std::filesystem::exists(buildOut) ? readFileString(buildOut) : std::string{}) +
+                           (std::filesystem::exists(buildErr) ? readFileString(buildErr) : std::string{});
+    if (!build.launched) result.diagnostics.push_back("KR compiler launch failed: " + build.error);
+    if (build.timedOut) result.diagnostics.push_back("KR compiler timed out");
+    if (build.exitCode != 0) result.diagnostics.push_back("KR compiler exit code " + std::to_string(build.exitCode));
+
+    const auto generated = result.isolatedProjectRoot / "KR_BUILD";
+    result.executablePath = generated / "programm.exe";
+    result.buildPassed = build.launched && !build.timedOut && build.exitCode == 0 &&
+                         std::filesystem::is_regular_file(result.executablePath);
+    result.rustLinked = !needsRust || std::filesystem::is_regular_file(generated / "rust_module/target/release/libkr_rust.a");
+    result.goLinked = !needsGo || std::filesystem::is_regular_file(generated / "go_module/libkr_go.a");
+    result.sdlLinked = !needsSdl || std::filesystem::is_regular_file(generated / "SDL3.dll");
+    if (!result.rustLinked) result.diagnostics.push_back("Required Rust archive was not regenerated");
+    if (!result.goLinked) result.diagnostics.push_back("Required Go archive was not regenerated");
+    if (!result.sdlLinked) result.diagnostics.push_back("Required SDL3 runtime was not staged");
+
+    // Generate a name-independent ABI probe from all semantically derivable
+    // scalar contracts and compare the real archive functions with the source
+    // expressions over negative, zero, positive, and boundary-like values.
+    std::vector<CrossLanguageAbiContract> contracts;
+    for (const auto& contract : analysis.abiContracts) {
+        bool supported = contract.semanticallyDerivable &&
+            (contract.returnType == "bool" || contract.returnType == "int32_t" || contract.returnType == "int64_t");
+        for (const auto& parameter : contract.parameters)
+            supported = supported && (parameter.first == "bool" || parameter.first == "int32_t" || parameter.first == "int64_t");
+        if (supported) contracts.push_back(contract);
+    }
+    if (contracts.empty()) {
+        result.abiFunctionalTestsPassed = !needsRust && !needsGo;
+        if (!result.abiFunctionalTestsPassed)
+            result.diagnostics.push_back("No semantically derivable scalar ABI contracts were available for required foreign-language modules");
+    } else if (result.rustLinked && result.goLinked) {
+        std::ostringstream probe;
+        probe << "#include <cstdint>\n#include <iostream>\n";
+        for (const auto& contract : contracts) {
+            probe << "extern \"C\" " << contract.returnType << ' ' << contract.functionName << '(';
+            for (std::size_t i=0;i<contract.parameters.size();++i) {
+                if (i) probe << ',';
+                probe << contract.parameters[i].first << ' ' << contract.parameters[i].second;
+            }
+            probe << ");\n";
+        }
+        probe << "int main(){int failures=0;\n";
+        for (const auto& contract : contracts) {
+            for (const auto& parameter : contract.parameters) {
+                if (parameter.first == "bool") probe << "for(bool " << parameter.second << ":{false,true}){\n";
+                else probe << "for(" << parameter.first << ' ' << parameter.second << ":{";
+                if (parameter.first != "bool") probe << "-2,-1,0,1,2,4,5,42}){\n";
+            }
+            probe << "auto actual=" << contract.functionName << '(';
+            for (std::size_t i=0;i<contract.parameters.size();++i) { if(i) probe << ','; probe << contract.parameters[i].second; }
+            probe << "); auto expected=(" << contract.cppExpression << "); if(actual!=expected){++failures;}\n";
+            for (std::size_t i=0;i<contract.parameters.size();++i) probe << "}\n";
+        }
+        probe << "if(failures){std::cerr<<\"ABI failures=\"<<failures<<'\\n';return 31;}"
+                 "std::cout<<\"KR_ABI_FUNCTIONAL_PASS\\n\";return 0;}\n";
+        const auto probeSource = config.isolatedWorkspace / "kr_abi_functional_probe.cpp";
+        const auto probeExe = config.isolatedWorkspace / "kr_abi_functional_probe.exe";
+        writeFileString(probeSource, probe.str());
+        std::vector<std::string> compileArgs{config.cppCompiler.string(), "-std=c++20", "-O2", "-Wall", "-Wextra",
+            "-Wpedantic", "-Werror", "-static-libgcc", "-static-libstdc++", probeSource.string()};
+        const auto goArchive = generated / "go_module/libkr_go.a";
+        const auto rustArchive = generated / "rust_module/target/release/libkr_rust.a";
+        if (std::filesystem::exists(goArchive)) compileArgs.push_back(goArchive.string());
+        if (std::filesystem::exists(rustArchive)) compileArgs.push_back(rustArchive.string());
+        const auto toolchainRoot = config.cppCompiler.parent_path().parent_path();
+        compileArgs.insert(compileArgs.end(), {"-L" + (toolchainRoot / "lib").string(), "-lws2_32", "-luserenv",
+                                               "-lbcrypt", "-lntdll", "-lwinmm", "-o", probeExe.string()});
+        const auto compileResult = runProcess(compileArgs, config.isolatedWorkspace, {},
+            config.isolatedWorkspace / "abi_compile.stdout.log", config.isolatedWorkspace / "abi_compile.stderr.log", minutes(2));
+        if (compileResult.launched && !compileResult.timedOut && compileResult.exitCode == 0) {
+            const auto probeResult = runProcess({probeExe.string()}, config.isolatedWorkspace, {},
+                config.isolatedWorkspace / "abi_test.stdout.log", config.isolatedWorkspace / "abi_test.stderr.log", seconds(30));
+            result.abiFunctionalTestsPassed = probeResult.launched && !probeResult.timedOut && probeResult.exitCode == 0;
+        }
+        if (!result.abiFunctionalTestsPassed) result.diagnostics.push_back("Generated cross-language ABI functional probe failed");
+    }
+
+    if (result.buildPassed) {
+        const auto runtimeOut = config.isolatedWorkspace / "runtime.stdout.log";
+        const auto runtimeErr = config.isolatedWorkspace / "runtime.stderr.log";
+        const auto runtime = runProcess({result.executablePath.string()}, generated, {}, runtimeOut, runtimeErr,
+                                        milliseconds(config.runtimeProbeMilliseconds));
+        result.runtimeStarted = runtime.launched && (runtime.timedOut || runtime.exitCode == 0);
+        const auto runtimeText = (std::filesystem::exists(runtimeOut) ? readFileString(runtimeOut) : std::string{}) +
+                                 (std::filesystem::exists(runtimeErr) ? readFileString(runtimeErr) : std::string{});
+        result.runtimeReady = result.runtimeStarted &&
+            (config.runtimeReadyMarker.empty() || runtimeText.find(config.runtimeReadyMarker) != std::string::npos);
+        if (!result.runtimeReady) result.diagnostics.push_back("Runtime did not reach the configured readiness marker");
+    }
+
+    const auto after = createSha256DirectoryManifest(config.protectedProjectRoot);
+    result.originalSha256After = after.sha256;
+    result.originalProjectUntouched = before.sha256 == after.sha256;
+    if (!result.originalProjectUntouched) throw std::runtime_error("KR E2E safety violation: protected original changed");
+
+    result.reportPath = config.isolatedWorkspace / "kr_end_to_end.json";
+    std::ostringstream report;
+    report << "{\n  \"format\": \"gdi-kr-end-to-end-v1\",\n"
+           << "  \"success\": " << (result.success()?"true":"false") << ",\n"
+           << "  \"build_passed\": " << (result.buildPassed?"true":"false") << ",\n"
+           << "  \"rust_linked\": " << (result.rustLinked?"true":"false") << ",\n"
+           << "  \"go_linked\": " << (result.goLinked?"true":"false") << ",\n"
+           << "  \"sdl_linked\": " << (result.sdlLinked?"true":"false") << ",\n"
+           << "  \"runtime_started\": " << (result.runtimeStarted?"true":"false") << ",\n"
+           << "  \"runtime_ready\": " << (result.runtimeReady?"true":"false") << ",\n"
+           << "  \"abi_functional_tests_passed\": " << (result.abiFunctionalTestsPassed?"true":"false") << ",\n"
+           << "  \"original_sha256_before\": " << jsonEscapeStr(result.originalSha256Before) << ",\n"
+           << "  \"original_sha256_after\": " << jsonEscapeStr(result.originalSha256After) << ",\n"
+           << "  \"original_project_untouched\": " << (result.originalProjectUntouched?"true":"false") << ",\n"
+           << "  \"executable\": " << jsonEscapeStr(result.executablePath.string()) << ",\n"
+           << "  \"diagnostics\": [";
+    for (std::size_t i=0;i<result.diagnostics.size();++i) { if(i) report << ','; report << jsonEscapeStr(result.diagnostics[i]); }
+    report << "]\n}\n";
+    writeFileString(result.reportPath, report.str());
     return result;
 }
 

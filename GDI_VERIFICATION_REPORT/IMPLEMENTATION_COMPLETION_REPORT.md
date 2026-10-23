@@ -2,9 +2,9 @@
 
 ## Ergebnis
 
-GDI wurde auf Version **1.4.0** erweitert. Der saubere Windows-x64-Build unter GCC 16.1.0 bestand mit den verlangten Werror-Flags; die erweiterte Suite bestand mit **10/10** Tests. Der unveränderliche Genomhash blieb `0x230e7e7cbba19145`.
+GDI wurde auf Version **1.4.1** erweitert. Der saubere Windows-x64-Build unter GCC 16.1.0 bestand mit den verlangten Werror-Flags; die um den realen KR-Projekttest erweiterte Suite bestand mit **11/11** Tests. Der unveränderliche Genomhash blieb `0x230e7e7cbba19145`.
 
-Der Gesamtstatus bleibt bewusst **PARTIAL**: Die sicherheitskritischen Importgrenzen, strukturierten Diagnosen, allgemeine begrenzte Cross-Language-ABI-Synthese und GUI-Artefakterzeugung sind implementiert. Ein vollständig semantisch gleichwertiger Windows-Build von MDRAFTNE einschließlich originaler Go-/Rust-Bibliotheken, SDL-GUI-Start und Funktionsautomation wurde nicht erreicht. Ebenso ist keine vollständige ISO-C++20-Konformität belegt.
+Der Gesamtstatus bleibt für die universelle Entwicklungsintelligenz bewusst **PARTIAL**, aber der zuvor offene MDRAFTNE-Windows-Pfad ist nun real nachgewiesen: vollständiger KR-Neubau einschließlich echter Go-/Rust-Bibliotheken, SDL3-Link, Programmstart, erster gerenderter Frame und generierter Cross-Language-Funktionstest. Eine vollständige ISO-C++20-Konformität sowie die Automation sämtlicher interaktiver Editor-/Picker-/Android-Abläufe werden weiterhin nicht behauptet.
 
 ## Implementierte Änderungen
 
@@ -41,14 +41,14 @@ Der Gesamtstatus bleibt bewusst **PARTIAL**: Die sicherheitskritischen Importgre
 ## Build- und Laufzeitnachweise
 
 - Clean build: `D:\2_antigravity_GDI\build_completion`, Exit 0.
-- CTest: 10/10, Exit 0, 232,97 Sekunden.
+- CTest: 11/11, Exit 0, 582,42 Sekunden; darin `GDIKrProjectEndToEnd` mit 129,22 Sekunden.
 - `GDIBehavioralInductionEndToEnd`: PASS einschließlich unbekannter ABI-Funktionen.
 - MDRAFTNE: interner Hash und SHA-256 vor/nach identisch; SHA-256 `d9be5adf49a98ccc9d6c3b55aeb51f8e79f3f97726a3313edfaafd3c356870fa`.
 - GUI/Sandbox/Engine-Binärhashes sind in `GUI_VERIFICATION.md` dokumentiert.
 
 ## Verbleibende Grenzen
 
-- MDRAFTNE wird weiterhin nur als automatisch erkanntes `core`-Target kompiliert. Der originale KR-Buildgraph mit Go-/Rust-Archiven, SDL3, Linkreihenfolge, `programm.exe`-Start und GUI-Funktionstest ist nicht rekonstruiert.
+- MDRAFTNE wurde über den echten KR-Buildgraph neu erzeugt: acht C++-Translation-Units, Rust- und Go-Archive, SDL3 und `programm.exe`. Programmstart, erster Frame, 300 Frames und die zwei semantisch ableitbaren Cross-Language-Verträge sind verifiziert. Vollständige Maus-/Tastaturautomation aller GUI-Aktionen und Android-Picker-Semantik bleiben außerhalb dieses Windows-Nachweises.
 - Die ABI-Pipeline ist absichtlich auf nebenwirkungsfreie skalare Ausdrücke begrenzt. Pointer, Ownership, Heapobjekte, Strings über Sprachgrenzen, Panics/Exceptions und komplexe Struct-Layouts werden fail-closed nicht synthetisiert.
 - Projekt-Builddateien werden analysiert, aber nicht als beliebige untrusted Buildskripte ausgeführt.
 - Kein ISO-C++20-Konformitätstestpaket wurde ausgeführt.

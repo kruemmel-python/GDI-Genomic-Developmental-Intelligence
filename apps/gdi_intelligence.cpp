@@ -20,10 +20,12 @@ std::size_t parseCycles(const std::string& value) {
 int main(int argc,char** argv) {
     try {
         std::filesystem::path curriculumPath,foreignProjectPath,workspace,compiler="g++",sandbox,componentMemory,repairMemory;
+        std::filesystem::path krJava,krCompilerJar;
         std::filesystem::path projectMemoryPath,devPrincipleMemoryPath;
-        std::string objective;
+        std::string objective,runtimeReadyMarker;
         bool controlExperiment=false;
         bool allowWriteback=false;
+        bool krEndToEnd=false;
         std::size_t maxCycles=8;
         for(int i=1;i<argc;++i) {
             const std::string key=argv[i];
@@ -33,6 +35,10 @@ int main(int argc,char** argv) {
             }
             if(key=="--allow-writeback") {
                 allowWriteback=true;
+                continue;
+            }
+            if(key=="--kr-e2e") {
+                krEndToEnd=true;
                 continue;
             }
             if(i+1>=argc)throw std::invalid_argument("Every option requires a value");
@@ -47,13 +53,40 @@ int main(int argc,char** argv) {
             else if(key=="--repair-memory")repairMemory=value;
             else if(key=="--project-memory")projectMemoryPath=value;
             else if(key=="--dev-memory")devPrincipleMemoryPath=value;
+            else if(key=="--kr-java")krJava=value;
+            else if(key=="--kr-compiler-jar")krCompilerJar=value;
+            else if(key=="--runtime-ready-marker")runtimeReadyMarker=value;
             else if(key=="--cycles")maxCycles=parseCycles(value);
             else throw std::invalid_argument("Unknown option: "+key);
         }
-        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty())||workspace.empty()||sandbox.empty())
+        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty())||workspace.empty()||(!krEndToEnd&&sandbox.empty()))
             throw std::invalid_argument("Either --foreign-project, --objective, or --curriculum (or --behavior), plus --workspace and --sandbox are required");
 
         if(!foreignProjectPath.empty()) {
+            if(krEndToEnd) {
+                genomic::gpi::KrProjectEndToEndConfig krConfig;
+                krConfig.protectedProjectRoot=foreignProjectPath;
+                krConfig.isolatedWorkspace=workspace;
+                krConfig.javaExecutable=krJava;
+                krConfig.krCompilerJar=krCompilerJar;
+                krConfig.cppCompiler=compiler;
+                krConfig.runtimeReadyMarker=runtimeReadyMarker;
+                const auto krResult=genomic::gpi::verifyKrProjectEndToEnd(krConfig);
+                std::cout<<"KR_BUILD="<<(krResult.buildPassed?"PASS":"FAIL")
+                         <<"\nRUST_LINKED="<<(krResult.rustLinked?"YES":"NO")
+                         <<"\nGO_LINKED="<<(krResult.goLinked?"YES":"NO")
+                         <<"\nSDL_LINKED="<<(krResult.sdlLinked?"YES":"NO")
+                         <<"\nRUNTIME_STARTED="<<(krResult.runtimeStarted?"YES":"NO")
+                         <<"\nRUNTIME_READY="<<(krResult.runtimeReady?"YES":"NO")
+                         <<"\nABI_FUNCTIONAL_TESTS="<<(krResult.abiFunctionalTestsPassed?"PASS":"FAIL")
+                         <<"\nORIGINAL_UNTOUCHED="<<(krResult.originalProjectUntouched?"YES":"NO")
+                         <<"\nORIGINAL_SHA256_BEFORE="<<krResult.originalSha256Before
+                         <<"\nORIGINAL_SHA256_AFTER="<<krResult.originalSha256After
+                         <<"\nEXECUTABLE="<<krResult.executablePath.string()
+                         <<"\nRESULT="<<(krResult.success()?"PASS":"BLOCKED")
+                         <<"\nREPORT="<<krResult.reportPath.string()<<'\n';
+                return krResult.success()?0:4;
+            }
             genomic::gpi::ForeignProjectDevelopmentConfig fpConfig;
             fpConfig.foreignProjectRoot=foreignProjectPath;
             fpConfig.isolatedWorkspace=workspace;
