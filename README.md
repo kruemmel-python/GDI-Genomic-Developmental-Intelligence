@@ -1,231 +1,246 @@
-# GDI – Genomic Developmental Intelligence
+# GDI — Genomic Developmental Intelligence
 
-GDI ist ein in C++20 implementiertes Entwicklungs- und Forschungssystem für Programme. Ein unveränderliches lineares Genom beschreibt grammatische, regulatorische und generative Möglichkeiten. Lokale molekulare Zustände, Entwicklungszustände und verifizierte Erfahrung bestimmen, welche Fähigkeiten in einem Lauf exprimiert werden. Das Genom selbst wird dabei nicht verändert.
+**Release:** 1.5.0 · **Platform:** Windows x64 · **Core:** C++20 · **Status:** R17 implemented within a deliberately bounded, fail-closed synthesis scope.
 
-Das Repository enthält den reinen Projektquellcode. Der verwendete C++20-Compiler ist eine externe Abhängigkeit und gehört nicht zum Projekt.
+GDI is a native C++20 system for analyzing, verifying, repairing and—within an explicitly supported scope—extending software projects. Its architecture combines an immutable synthetic genome, regulatory capability gates, build-contract reconstruction, strategy planning, isolated execution and persistent development evidence.
 
-## Was das System ausführt
+The current R17 release adds **Autonomous Software Engineering Intelligence (ASEI)**: a requirement can be transformed into a structured contract, a project-impact model, an architecture change plan, generated C++20 components, native build/test evidence and reusable development experience—without changing the protected source project.
 
-- Es verfügt über ein **vollständiges genomisch gesteuertes C++20-Sprachsynthese- und Semantik-Regelwerk** als stabilen Fixpunkt:
-  - **Eigenständiger `switch`-Syntax- und Synthesepfad**: Genomische Grammatik-, Parser-, AST-, Printer-, `constexpr`-Auswertungs-, Semantik-, IR-Lowering- und VM-Unterstützung für `switch (init; cond)`, `case`-Konstantenausdrücke, `default`, `[[fallthrough]]` sowie generative Multi-Way-`switch`-Synthese in `.goal`- und `.behavior`-Pipelines.
-  - **Vollständige C++20-Typanalyse**: Mehrwort-Spezifizierer (`unsigned long long`, `long int`, `unsigned short`, Fixed-Width-Typen `int8_t`..`uint64_t`), `const`/`volatile`-Qualifizierer (führend und nachgestellt), Zeiger, LValue-/RValue-/Forwarding-Referenzen, Referenzkollabierung (`T& & -> T&`, `T&& && -> T&&`), `removeCVRef`, `decay`, Arrays, Funktionszeiger, `enum class` und Template-Spezialisierungen.
-  - **Vollständige C++20-Template-Deduktion & Spezialisierung**: Rekursive Musterdeduktion über beliebig viele Template-Parameter (`const T*`, `U&`, `T[N]`, `Record<T, U>`), Forwarding-Referenzen (`T&&` mit LValue $\rightarrow$ `T&`), Parameter-Packs (`Ts...`), Non-Deduced Contexts (`std::type_identity_t<T>`), explizite und Default-Template-Argumente, Class Template Argument Deduction (CTAD), partielle Funktions- und Klassentemplate-Ordnung sowie SFINAE-Substitutionsprüfung.
-  - **Vollständige C++20-Constraints & Concept-Subsumption**: Normalisierung beliebiger Konjunktionen (`&&`) und Disjunktionen (`||`) atomarer Constraints in Disjunktive Normalform (DNF) mit logischer Implikations- und Subsumptionsprüfung (`isMoreConstrained`) sowie `requires`-Ausdrucksauswertung.
-  - **Vollständige C++20-Overload-Auflösung**: Exakte Implicit Conversion Sequence (ICS) Rangordnung (`ExactMatch` $\rightarrow$ `Promotion` $\rightarrow$ `StandardConversion` $\rightarrow$ `UserDefinedConversion` $\rightarrow$ `EllipsisConversion`), LValue/RValue-Referenzbindungsregeln (`T&&` vs. `const T&` vs. `T&`), Qualifikationsanpassungen (`T*` vs. `const T*`) und vollständige Tie-Breaker-Kaskade (Nicht-Template vor Template, partielle Template-Ordnung, Concept-Subsumption).
-  - **Vollständige C++20-Lebensdauer-, RAII- & Borrow-Analyse**: Deterministische RAII-Destruktor-Reihenfolge (umgekehrte Deklarationsreihenfolge bei Blockende und `return`), Temporary Materialization (`PRValue` $\rightarrow$ `XValue`), Referenz-Lebensdauerverlängerung (`const T&` / `T&&`), Erkennung hängender Referenzen und Zeiger (`dangling reference/pointer` bei `return` lokaler Objekte), `std::move`-Tracking mit Use-after-Move-Schutz sowie Schutz vor uninitialisierten Lesezugriffen.
-- Es erzeugt aus unterstützten deutsch- und englischsprachigen Aufgaben einen expliziten Zielvertrag.
-- Es zerlegt Ziele in typisierte Operationen und Abhängigkeiten.
-- Es entwickelt und verifiziert C++20-Kandidaten in begrenzten Entwicklungszyklen.
-- Es modelliert Analyse, Synthese und Forschung als logisch getrennte Kompartimente über demselben eingefrorenen Genom.
-- Es repräsentiert beliebige C++20-Quelldateien bytegenau als genomisch hergeleitete Artefakte.
-- Es verarbeitet allgemeine mehrdateiige Projektgraphen mit Headern, Quellen, Modulen, Tests, Ressourcen, Build-Manifesten, Abhängigkeiten und Targets.
-- Es synthetisiert aus typisierten Projekt-Blueprints (`.blueprint` V1 & V2) neue Header-, Implementierungs-, Anwendungs-, Modul- und Teststrukturen inklusive eigener Datentypen (`struct`, Methoden, `operator==`), `enum class`, C++20-`concept`s und eingeschränkter Funktions-Templates (`requires`).
-- Es leitet aus typisierten Ziel-Operationsgraphen (`.goal` V1 & V2) eigenständig mehrkomponentige Funktionsausdrücke, Typkonstruktionen, Feld-/Methodenzugriffe, Komponentenabhängigkeiten, Tests und einen ausführbaren Mehrdatei-Projektgraphen mit Domänenmodulen ab.
-- Es induziert aus mehreren Verhaltensanforderungen (`.behavior` V1 & V2) zusammenhängende Funktionen, eigene Datentypen mit Methoden sowie modulübergreifende Softwareprojekte, indem früher synthetisierte Typen, Methoden und Funktionen als genomisch autorisierte Bausteine für nachgelagerte Komponenten wiederverwendet werden.
-- Es führt mit `gdi_intelligence` eine **eigenständig entwicklungsfähige, genomisch organisierte Programmierintelligenz** aus:
-  - **Fremde, unbekannte C++20-Softwareprojekte erschließen & weiterentwickeln (`--foreign-project`)**: Lädt beliebige externe C++20-Projekte (mit oder ohne `project.gpi`) zunächst strikt **Read-Only**, analysiert AST, Semantik, Typen, Templates, Module, Schnittstellen, Datenflüsse und Verträge, bildet **gleichzeitig während der Analyse Architekturhypothesen**, leitet Entwicklungsziele ab, synthetisiert fehlende Modulfunktionen oder Reparaturen in einem isolierten Arbeitsbereich, verifiziert sie in der Sandbox und konsolidiert ein **doppeltes Gedächtnis**: das **Projektgedächtnis (`ProjectMemoryStore` / `GDIPM1`)** für Fakten über das konkrete Projekt und das **Entwicklungsgedächtnis (`DevelopmentalPrincipleStore` / `GDIDP1`)** für allgemeingültige, auf völlig andere Projekte übertragbare Lösungsprinzipien.
-  - **Autonomer ontogenetischer Entwicklungsplaner (`--objective` / `--control-experiment`)**: Prüft aus einem übergeordneten Ziel eigenständig vorhandene Fähigkeiten im Gedächtnis, identifiziert Wissenslücken und leitet sein Entwicklungs-Curriculum mit unabhängigen Verhaltensprüfungen selbst ab.
-  - **Mehrstufige ontogenetische Curricula (`.curriculum`: `Neonatal` $\rightarrow$ `Juvenile` $\rightarrow$ `Mature`)**.
-- Es kompiliert, linkt und prüft erzeugte Programme gegen unabhängige Ein-/Ausgabe- und Exit-Code-Verträge.
-- Es kann belegte Fehlerklassen genomisch autorisiert reparieren, darunter fehlende Standard-Header, fehlende Link-Abhängigkeiten sowie bestimmte Typ- und Zahlenfehler. Nachweislich fortgeschrittene Zwischenstände bleiben über mehrere Entwicklungszyklen erhalten.
-- Es speichert ausschließlich vollständig verifizierte Transformationsgruppen atomar in einem verketteten Erfahrungsspeicher und prüft sie bei Transferaufgaben erneut.
-- Unter Windows führt es unbekannten Programmcode in einer AppContainer-Sandbox ohne deklarierte Netzwerkfähigkeiten aus.
+> GDI does not claim universal autonomous programming. Unsupported, ambiguous or insufficiently evidenced requests are blocked instead of receiving speculative source changes.
 
-## Build
+## Highlights
 
-Voraussetzungen:
+- **R17 autonomous feature development** for supported CMake/C++20 tasks.
+- **R15 BuildContract** discovery for CMake, MSBuild, Ninja, Make and direct compiler workflows.
+- **R16 DevelopmentStrategy** planning, persistence, transfer scoring and fail-closed execution boundaries.
+- **R17 RequirementContract**, ChangeImpactGraph and ArchitectureChangePlan with traceable evidence.
+- **Isolated development workspaces** with original-tree integrity checks.
+- **Native verification** through the discovered toolchain, linker and CTest rather than a substitute compiler path.
+- **Persistent strategy and experience records** separate from the immutable genome.
+- **Native Windows GUI** with R17 requirement-driven development mode.
+- **KR integration evidence** for real KR, Rust, Go and SDL builds without modifying the KR toolchain.
 
-- CMake 3.20 oder neuer
-- Ninja oder ein anderer von CMake unterstützter Generator
-- ein C++20-Compiler
+## R17: Requirement to Verified Software Change
+
+```text
+Requirement
+  → RequirementContract
+  → R15 BuildContract + reproduced baseline
+  → ChangeImpactGraph
+  → ArchitectureChangePlan
+  → R16 strategy graph
+  → genome-authorized C++20 synthesis
+  → isolated integration
+  → native build, tests and acceptance evidence
+  → persisted strategy and experience
+```
+
+R17 currently supports two verified capability classes:
+
+| Capability | Generated behavior | Acceptance coverage |
+| --- | --- | --- |
+| `persistent_state` | Typed persistent string state with save/load and integrity rejection | write, restart/load, corrupt-data rejection |
+| `integer_aggregation` | Integer-sequence total calculation | positive, empty and negative inputs |
+
+Generated headers, implementations, acceptance tests and CMake integration are created only inside a new isolated workspace. The original project is checked before and after the run.
+
+## Architecture
+
+| Layer | Responsibility |
+| --- | --- |
+| Synthetic genome | Static capability definitions, grammar and regulatory loci; never mutated at runtime. |
+| R15 BuildContract | Discovers targets, dependencies, compiler/generator data, SDK evidence and test topology. |
+| R16 DevelopmentStrategy | Plans compatible operator graphs, records outcomes and persists reusable strategy evidence. |
+| R17 ASEI | Interprets requirements, computes impact, selects architecture, synthesizes approved components and verifies acceptance criteria. |
+| Native verification | Runs the real project build, linker, executable and CTest path in an isolated workspace. |
+| Experience stores | Persist project facts, transferable principles, strategy graphs and R17 outcome records with provenance. |
+
+## Quick Start
+
+### Prerequisites
+
+- Windows 11 x64
+- CMake 3.20 or newer
+- A C++20 compiler
+- A supported generator (the validated reference uses **MinGW Makefiles** and GCC 16.1.0)
+
+Reference toolchain paths used for the verified Windows build:
+
+```text
+D:\android_project\windows\toolchain\bin\g++.exe
+D:\android_project\windows\toolchain\bin\mingw32-make.exe
+```
+
+### Build and Test
 
 ```powershell
-cmake -S . -B build -G Ninja `
-  -DCMAKE_CXX_COMPILER="F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe"
-cmake --build build
+$env:PATH = 'D:\android_project\windows\toolchain\bin;' + $env:PATH
+
+cmake -S . -B build -G 'MinGW Makefiles' `
+  -DCMAKE_CXX_COMPILER='D:/android_project/windows/toolchain/bin/g++.exe' `
+  -DCMAKE_MAKE_PROGRAM='D:/android_project/windows/toolchain/bin/mingw32-make.exe'
+
+cmake --build build -j 1
 ctest --test-dir build --output-on-failure
 ```
 
-Der Referenzstand wird mit Warnungen als Fehler (`-Wall -Wextra -Wpedantic -Werror`) gebaut. Die aktuelle Windows-Regression umfasst neun Unit- und End-to-End-Tests, darunter reale externe Kompilierungen und sandbox-isolierte Ausführungen.
+The release baseline is compiled with:
 
-## Desktop-Oberfläche – GDI v1.4.1
+```text
+-std=c++20 -Wall -Wextra -Wpedantic -Werror
+```
 
-## KR-Projekte vollständig verifizieren
+The R17 release verification completed **12/12 CTest tests** successfully.
 
-`gdi_intelligence --kr-e2e` führt einen geschützten KR-End-to-End-Nachweis aus. GDI kopiert nur Primärquellen in einen isolierten Arbeitsbereich, lässt `KR_BUILD` durch die unveränderte KR-Compiler-Engine neu erzeugen, verlangt die tatsächlich benötigten Rust-/Go-Archive und SDL-Laufzeitdateien, startet das erzeugte Windows-Programm zeitbegrenzt bis zu einem expliziten Bereitschaftsmarker und kompiliert namenunabhängige ABI-Funktionstests aus semantisch ableitbaren KR-/Go-/Rust-Verträgen.
+## R17 CLI Usage
+
+Use `gdi_intelligence` to develop a supported new capability in an isolated copy of a CMake project:
 
 ```powershell
-.\gdi_intelligence.exe --kr-e2e `
+.\build\gdi_intelligence.exe `
+  --foreign-project .\examples\r17_neutral_project `
+  --development-requirement `
+    'Add persistent session state that is saved, restored after restart, and rejected when corrupted.' `
+  --workspace D:\gdi-runs\session-development `
+  --compiler D:\android_project\windows\toolchain\bin\g++.exe `
+  --cmake 'C:\Program Files\CMake\bin\cmake.exe' `
+  --ctest 'C:\Program Files\CMake\bin\ctest.exe' `
+  --r17-execute
+```
+
+Successful output includes:
+
+```text
+R17_REQUIREMENT=<stable requirement id>
+R17_CAPABILITY=<supported capability class>
+R17_ARCHITECTURE=<architecture plan id>
+R17_CHANGES=<generated artifacts>
+R17_ACCEPTANCE=<verified criteria>
+ORIGINAL_UNTOUCHED=YES
+EXPERIENCE_PERSISTED=YES
+RESULT=COMPLETE
+```
+
+Omit `--r17-execute` to inspect and persist the contract, impact and architecture plan without carrying out the generated native build. The result is then intentionally `INCOMPLETE`.
+
+## Windows GUI
+
+After a Windows build, start:
+
+```powershell
+.\build\gdi_gui.exe
+```
+
+`gpi_gui.exe` remains available for compatibility. Select:
+
+```text
+GDI R17 – Neue Softwarefunktion aus Anforderung entwickeln (isoliert)
+```
+
+1. Enter the new functional requirement in the upper task field.
+2. Select the target project directory in the project field.
+3. Choose **Ziel analysieren** to inspect the requirement, build contract, impact graph and architecture plan.
+4. Choose **Entwicklung starten** to run the isolated R17 pipeline.
+
+The GUI launches the same production backend as the CLI, displays process output and records the result workspace. Its self-test also exercises the R17 requirement pipeline:
+
+```powershell
+.\build\gdi_gui.exe --self-test
+```
+
+## Build-Contract and Repair Intelligence
+
+R15/R16 capabilities remain available through `gdi_intelligence`:
+
+```powershell
+.\build\gdi_intelligence.exe `
+  --foreign-project <project-root> `
+  --workspace <isolated-workspace> `
+  --execute-strategy `
+  --strategy-memory <workspace>\strategies.gdis
+```
+
+GDI distinguishes source defects, configuration errors, unavailable SDKs, compiler-family incompatibilities, unresolved link dependencies and test/runtime failures. The native contract is reconstructed and executed before any successful outcome is reported.
+
+## KR / Rust / Go / SDL Verification
+
+The optional KR path regenerates `KR_BUILD` only in an isolated workspace, then validates real C++, Rust, Go and SDL integration plus a bounded runtime readiness marker.
+
+```powershell
+.\build\gdi_intelligence.exe --kr-e2e `
   --foreign-project F:\MDRAFTNE `
   --workspace D:\gdi-runs\mdraftne-e2e `
   --compiler D:\android_project\windows\toolchain\bin\g++.exe `
   --kr-java D:\android_project\windows\runtime\jdk\bin\java.exe `
   --kr-compiler-jar D:\android_project\windows\dist\KR-Compiler-IDE.jar `
-  --runtime-ready-marker "START: Erster Frame gerendert"
+  --runtime-ready-marker 'START: Erster Frame gerendert'
 ```
 
-Ein Erfolg setzt Build, benötigte Spracharchive, SDL-Staging, Programmstart, Bereitschaftsmarker, ABI-Funktionstests und einen identischen SHA-256-Hash des geschützten Originals voraus. Vorhandene Dateien unter `KR_BUILD` werden nicht als Eingabe übernommen.
+The KR compiler toolchain and protected original project are never modified.
 
-Unter Windows baut CMake die **aktualisierte native GDI-Oberfläche** als `gpi_gui.exe` und
-legt daneben automatisch eine identische `gdi_gui.exe` an. Die alte ausführbare Datei
-bleibt aus Kompatibilitätsgründen erhalten. **Der KR-Compiler wird nicht verändert.**
+## Security Model
 
-Die Oberfläche besitzt sieben Arbeitsbereiche in derselben Anwendung:
+- Foreign projects are imported read-only by default.
+- Workspaces nested below a protected original project are rejected.
+- Imports skip symbolic links/junctions and generated output directories.
+- R17 writes only to explicitly generated paths in its isolated copy.
+- A reproducible baseline is mandatory before source generation.
+- Build, test and runtime outcomes are captured; a successful compile alone is insufficient.
+- Original project hashes are compared before and after each development run.
+- Unrecognized requirements, missing authorization and unsafe transformations fail closed.
 
-1. **GDI – Fremdes C++20-Projekt erschließen & weiterentwickeln (Read-Only + Dual-Memory)**:
-   Lädt ein fremdes, bislang unbekanntes C++20-Projektverzeichnis (z. B. `examples/foreign_telemetry_project`), führt eine vollständige Read-Only-Sprach-, AST-, Modul- und Schnittstellenanalyse durch, bildet gleichzeitig Architekturhypothesen und Entwicklungsziele, synthetisiert fehlende Fähigkeiten isoliert in der Sandbox und speichert sowohl das **Projektgedächtnis (`GDIPM1`)** als auch das **übertragbare Entwicklungsgedächtnis (`GDIDP1`)**. Das Originalprojekt bleibt unangetastet (`ORIGINAL_UNTOUCHED=YES`).
-2. **GDI – Autonomer ontogenetischer Entwicklungsplaner (Ziel $\rightarrow$ eigenes Curriculum)**:
-   Nimmt nur ein übergeordnetes Ziel entgegen (z. B. *„Entwickle eine C++20-Anwendung, die zweidimensionale geometrische Objekte verwaltet, deren Eigenschaften berechnet und die Ergebnisse speichert.“*), prüft das Komponentengedächtnis (`GDIC1`), bestimmt vorhandene Fähigkeiten und Wissenslücken und leitet das mehrstufige Entwicklungs-Curriculum eigenständig ab.
-3. **GDI – Autonome Entwicklungsintelligenz (`.curriculum` / Ontogenese)**: Mehrstufige
-   ontogenetische Entwicklungs-Curricula (`Neonatal` $\rightarrow$ `Juvenile` $\rightarrow$ `Mature`)
-   laden (`ontogeny.curriculum`), prüfen und mit `gdi_intelligence.exe` ausführen. Verifizierte
-   Funktionen, Methoden und Datentypen früherer Entwicklungsstufen werden im verketteten
-   Komponenten-Erfahrungsspeicher (`GDIC1`) abgelegt und in späteren Stufen automatisch als
-   Synthesebausteine wiederverwendet.
-4. **GDI – Software aus Verhaltensbeispielen (`.behavior` V1/V2)**: Mehrkomponenten- und
-   Mehrtyp-Verhaltensdateien öffnen, editieren, Beispiel laden (`geometry.behavior` / `max.behavior`),
-   speichern, Zielstruktur (Typen, Module, Methoden, Funktionen, Samples/Checks) prüfen,
-   kompositionale verhaltensbasierte Synthese mit `gdi_create.exe` starten, Compiler- und
-   Sandbox-Ergebnisse im Live-Protokoll verfolgen und Ergebnisordner öffnen.
-5. **GDI – Typisierte Zielarchitektur (`.goal` V1/V2)**: Typisierte Architekturziele
-   mit eigenen Datentypen (`struct`, Felder, Methoden), `enum class`, C++20-`concept`s,
-   Domänenmodulen und Operationsgraphen öffnen, analysieren und über `gpi_architect.exe`
-   in einen Mehrdatei-Projektgraphen überführen und in der Sandbox verifizieren.
-6. **GDI – Projekt-Blueprint Synthese (`.blueprint` V1/V2)**: Vollständige
-   Mehrdatei-Blueprints inklusive `struct`-Typen, `enum class`, C++20-`concept`s,
-   Templates (`requires`), Domänenmodulen (`mod_<module>`) und unabhängigen Tests
-   laden, prüfen und über `gpi_synthesize.exe` kompilieren und in der Sandbox testen.
-7. **Bisherige integrierte Forschungsmodi**: A–D-Vergleich, Einzelkontext,
-   isolierte oder kommunizierende Kompartimente und Erfahrung. Diese Modi
-   verwenden weiterhin `gpi_integrated.exe` und die sichere typisierte
-   Aufgabenanalyse.
+## Supported Scope and Explicit Limits
 
-Die Oberfläche erkennt `g++.exe` neben der Anwendung, in typischen
-Toolchain-Unterverzeichnissen, im `PATH` oder unter dem bekannten
-KR-Toolchain-Pfad. Bei abweichender Installation kann der Pfad ausgewählt werden.
-Die `.behavior`-Beispieldatei wird relativ zum Quellprojekt gesucht; ist sie
-nicht auffindbar, bietet die GUI ein integriertes Maximum-Beispiel.
+GDI is **not** a replacement for a complete C++20 compiler, linker, semantic theorem prover or general Rust/Go synthesis system.
 
-**Windows-Start:**
+The current R17 implementation does not claim:
 
-```powershell
-# Nach dem Build, beispielsweise aus D:\GENOMIC_C_SYSTEM\KR_BUILD
-.\gdi_gui.exe
-# Alternativ unverändert kompatibel:
-.\gpi_gui.exe
+- arbitrary natural-language requirement interpretation;
+- arbitrary mutation of existing project sources;
+- universal ISO C++20 semantic coverage;
+- arbitrary cross-language implementation synthesis;
+- automatic writeback to foreign original projects; or
+- a completed independent blind-transfer research validation.
+
+When a request is unsupported, ambiguous or insufficiently evidenced, GDI returns `BLOCKED` or `INCOMPLETE` instead of generating plausible-looking but unverified code.
+
+## Verification Evidence
+
+R17 implementation and verification records are stored in:
+
+```text
+GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/
+├── R17_IMPLEMENTATION_REPORT.md
+├── R17_ARCHITECTURE.md
+├── R17_REQUIREMENTS_TRACEABILITY.md
+├── R17_OPERATOR_AND_GENOME_MAPPING.md
+├── R17_INTEGRATION_REPORT.md
+├── R17_SUPPORTED_SCOPE_AND_LIMITATIONS.md
+└── evidence/
 ```
 
-Im Modus „Software aus Verhaltensbeispielen“: „Beispiel laden“ →
-„Ziel analysieren“ → „Entwicklung starten“. Im rechten Bereich erscheinen
-Compiler-/Prüfausgaben und `RESULT=PASS` oder die Fehlermeldung. Mit
-„Ergebnisordner öffnen“ gelangt man zum erzeugten C++20-Projekt und zur
-Provenienz. Jeder Lauf erhält einen neuen `gdi_run_*`-Ordner.
+The public release and Windows-x64 package are available on the [GitHub Releases page](https://github.com/kruemmel-python/GDI-Genomic-Developmental-Intelligence/releases/tag/v1.5.0).
 
-**Wichtig:** Die `.behavior`-Eingabe ist ein strikt typisiertes Format für
-begrenzte ganzzahlige Funktionen, **kein freier natürlichsprachlicher
-Softwareauftrag**. „Ziel analysieren“ prüft das Eingabeformat und die
-Grundverträge; die eigentliche genomische Suche und die unabhängige
-Verifikation erfolgen erst beim Start. Widersprüchliche oder nicht erfüllbare
-Beispiele können dabei zu einem gesperrten Lauf führen. Die Windows-Sandbox
-ist im neuen Modus verpflichtend; fehlt `gpi_sandbox.exe`, wird nicht gestartet.
+## Main Executables
 
-Abbruch erfolgt über ein Windows-Jobobjekt für den gestarteten Prozessbaum.
-`gdi_create.exe`, `gpi_integrated.exe` und `gpi_sandbox.exe` müssen neben der
-GUI liegen. Für eine schnelle Windows-Buildkontrolle:
-
-```powershell
-.\gdi_gui.exe --self-test
-$LASTEXITCODE  # 0 bedeutet erfolgreich
-```
-
-## Allgemeine C++20-Projekte entwickeln
-
-`gpi_develop` lädt ein vorhandenes Projekt aus einem strikten Manifest, bildet es als genomischen Projektgraphen ab und prüft oder repariert es unter einem unveränderten Zielvertrag.
-
-```powershell
-.\build\gpi_develop.exe `
-  --manifest .\examples\develop_project\project.gpi `
-  --project-root .\examples\develop_project `
-  --workspace .\generated\develop_run `
-  --compiler "F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe" `
-  --sandbox .\build\gpi_sandbox.exe `
-  --memory .\generated\project.memory `
-  --cycles 8
-```
-
-Der Beispielquelltext enthält absichtlich einen fehlenden Standard-Header. GDI muss die Ausgangsversion zunächst ablehnen, die Reparatur aus Compiler-Evidenz und genomischen Regeln ableiten und das Ergebnis anschließend unabhängig in der Sandbox bestätigen.
-
-## Neue Projekte aus einem Blueprint synthetisieren
-
-`gpi_synthesize` liest typisierte Funktionssignaturen, Parameter, Ausdrücke, Einstiegspunkt und unabhängige Tests. Genomische Strukturregeln autorisieren daraus die Erzeugung eines vollständigen Mehrdatei-Projektgraphen. Eine Sandbox ist für diese CLI verpflichtend.
-
-```powershell
-.\build\gpi_synthesize.exe `
-  --blueprint .\examples\blueprint_fibonacci\project.blueprint `
-  --workspace .\generated\fibonacci_run `
-  --compiler "F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe" `
-  --sandbox .\build\gpi_sandbox.exe `
-  --memory .\generated\blueprint.memory `
-  --cycles 8
-```
-
-Das Beispiel beschreibt nur eine rekursive Fibonacci-Funktion, ihren Einstieg und drei semantische Tests. GDI erzeugt daraus Header, Implementierung, ausführbare Anwendung, Testprogramm und Buildmanifest. Der externe Compiler und die Sandbox-Verhaltensverträge prüfen das Ergebnis.
-
-## Architektur aus einem typisierten Ziel entwickeln
-
-`gpi_architect` trennt die Anforderung von ihrer C++20-Implementierung. Eine Zieldatei beschreibt Funktionen, Parameter und einen gerichteten Graph elementarer Operationen. GDI prüft Datentypen, Operandenanzahl, Referenzen und Zyklen, ermittelt Funktionsabhängigkeiten und komponiert daraus den Projekt-Blueprint. Nur im unveränderlichen Genom freigegebene Kompositionsoperatoren dürfen verwendet werden.
-
-```powershell
-.\build\gpi_architect.exe `
-  --goal .\examples\typed_factorial\factorial.goal `
-  --workspace .\generated\factorial_run `
-  --compiler "F:\KR-Compiler-Windows-x64-v4.3.1\toolchain\bin\g++.exe" `
-  --sandbox .\build\gpi_sandbox.exe `
-  --memory .\generated\architecture.memory `
-  --cycles 8
-```
-
-Das Fakultätsbeispiel enthält keinen fertigen C++-Ausdruck. Die rekursive Funktion entsteht aus Vergleich, Subtraktion, rekursivem Aufruf, Multiplikation und bedingter Auswahl. Das zweite Beispiel `typed_components` weist die automatische Zusammensetzung zweier abhängiger Funktionen nach. Erwartete Einstiegsergebnisse und unabhängige Fälle bleiben Teil des unveränderlichen Zielvertrags; jede Ausführung erfolgt verpflichtend in der Sandbox.
-
-## Zentrale Programme
-
-| Programm | Aufgabe |
+| Executable | Role |
 | --- | --- |
-| `gpi_gui` / `gdi_gui` | native Windows-Oberfläche für ontogenetische Entwicklungsintelligenz, `.behavior`, `.goal`, `.blueprint` und Forschung |
-| `gdi_intelligence` | eigenständig entwicklungsfähige, genomisch organisierte Programmierintelligenz (`.curriculum`, Ontogenese & Erfahrungsspeicher) |
-| `gdi_create` | verhaltensbasierte Mehrkomponenten- und Mehrtyp-Synthese (`.behavior` V1/V2) |
-| `gpi_integrated` | Zielvertrag, Kompartimente, Forschung und A–D-Architekturvergleich |
-| `gpi_develop` | allgemeine manifestbasierte Mehrdatei-Projekte, Reparatur und Erfahrungstransfer |
-| `gpi_synthesize` | genomisch autorisierte Mehrdatei-Projektsynthese aus typisierten Blueprints |
-| `gpi_architect` | typisierte Zielgraphen in Komponentenarchitektur, Projekt und Verifikation entwickeln |
-| `gpi_research` | begrenzte Hypothesen-/Experimentzyklen mit Evidenz |
-| `gpi_project` | natürlichsprachlich erzeugte Mehrdatei-Projekte im typisierten Aufgabenraum |
-| `gpi_agent` | typisierte Ausdruckssynthese mit Compiler-/Verhaltensprüfung |
-| `gpi_sandbox` | Windows-AppContainer-Ausführungsdienst |
-| `genomic_parse` | genomisch konfigurierte Parser-/AST-Inspektion |
+| `gdi_intelligence` | R15/R16/R17 build, strategy and autonomous-development pipeline. |
+| `gdi_gui` / `gpi_gui` | Native Windows interface, including R17 mode. |
+| `gpi_sandbox` | Windows sandbox/process isolation support. |
+| `gdi_create` | Bounded behavioral C++20 synthesis. |
+| `gpi_architect` | Typed architecture-goal synthesis. |
+| `gpi_synthesize` | Typed multi-file blueprint synthesis. |
+| `gpi_develop` | Manifest-driven project development workflow. |
+| `gpi_research` | Bounded research and hypothesis execution. |
 
-## Sicherheits- und Vertrauensgrenzen
+## Documentation
 
-- Der externe Compiler wird nicht modifiziert.
-- Prozesse werden ohne Shell-Interpolation mit festen Argumentlisten gestartet.
-- Zeitlimits und Prozessbaum-Beendigung begrenzen Compiler- und Programmläufe.
-- Projekt- und Manifestpfade dürfen den vorgesehenen Wurzelordner nicht verlassen; aufgelöste Symlink-Ziele werden ebenfalls geprüft.
-- Eine verlangte Sandbox darf nicht stillschweigend durch unisolierte Ausführung ersetzt werden.
-- Kompiliererfolg allein gilt nie als Zielerfüllung.
-- FNV-1a/CRC und die Erfahrungskette erkennen versehentliche oder einfache nachträgliche Änderungen, sind aber keine kryptografische Signatur.
+- [Technical documentation](DOCUMENTATION.md)
+- [R17 implementation report](GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/R17_IMPLEMENTATION_REPORT.md)
+- [R17 supported scope and limits](GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/R17_SUPPORTED_SCOPE_AND_LIMITATIONS.md)
+- [Implementation completion report](IMPLEMENTATION_COMPLETION_REPORT.md)
 
-## Wichtige fachliche Grenze
+## License
 
-GDI besitzt eine verlustfreie Repräsentation des gesamten C++20-Quellraums und kann solche Projekte an einen konformen Compiler übergeben. Seine eigene Parser-/Semantikschicht bildet bewusst nur einen geprüften Teil der ISO-C++20-Semantik nach. Vollständige Sprachsemantik wird nicht behauptet; für allgemeine Projekte sind der externe Compiler und die unabhängigen Verhaltensverträge die maßgebliche Instanz.
-
-Die ausführliche Architektur-, Manifest-, Sicherheits- und Verifikationsdokumentation steht in [DOCUMENTATION.md](DOCUMENTATION.md).
-
-### Behavioral program development (extension)
-
-`gdi_create` can infer a small typed C++20 function from integer input/output
-examples, without a prewritten operations graph. See
-`examples/behavioral_max/max.behavior`, `examples/behavioral_square/square.behavior`,
-`examples/behavioral_absolute/absolute.behavior` and the *Behavioral induction*
-section in `DOCUMENTATION.md`. This bounded feature is not general free-text
-software creation; it reuses the immutable genome, typed architecture generator,
-project development, and existing sandbox contract.
+See [LICENSE](LICENSE).
