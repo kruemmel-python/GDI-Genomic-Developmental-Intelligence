@@ -1,6 +1,8 @@
 #include "gpi/natural_task.hpp"
 #include "gpi/line_endings.hpp"
 #include "gpi/process_runner.hpp"
+#include "gpi/filesystem_safety.hpp"
+#include "gpi/autonomous_project_developer.hpp"
 #include "gpi/project_emitter.hpp"
 #include "gpi/research_developer.hpp"
 #include "gpi/task_ir.hpp"
@@ -103,6 +105,37 @@ int main(int argc,char** argv) {
         const auto temp=std::filesystem::current_path()/"gpi_v03_unit_test_artifacts";
         std::filesystem::remove_all(temp);
         std::filesystem::create_directories(temp);
+        const auto protectedRoot=temp/"protected";
+        std::filesystem::create_directories(protectedRoot);
+        {
+            std::ofstream sample(protectedRoot/"sample.txt",std::ios::binary);
+            sample<<"abc";
+        }
+        const auto manifest=genomic::gpi::createSha256DirectoryManifest(protectedRoot);
+        require(manifest.files.size()==1 && manifest.totalBytes==3 &&
+                manifest.files.front().sha256=="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+                "SHA-256 project manifest is incorrect");
+        bool nestedWorkspaceBlocked=false;
+        try { genomic::gpi::validateIsolatedWorkspace(protectedRoot,protectedRoot/"work"); }
+        catch(const std::invalid_argument&) { nestedWorkspaceBlocked=true; }
+        require(nestedWorkspaceBlocked,"Workspace inside protected project must fail closed");
+        genomic::gpi::validateIsolatedWorkspace(protectedRoot,temp/"isolated");
+        std::error_code symlinkError;
+        std::filesystem::create_symlink(protectedRoot/"sample.txt",protectedRoot/"escape-link",symlinkError);
+        if(!symlinkError) {
+            bool symlinkBlocked=false;
+            try { static_cast<void>(genomic::gpi::createSha256DirectoryManifest(protectedRoot)); }
+            catch(const std::invalid_argument&) { symlinkBlocked=true; }
+            require(symlinkBlocked,"Symbolic links in foreign projects must fail closed");
+            std::filesystem::remove(protectedRoot/"escape-link",symlinkError);
+        }
+        const auto diagnostics=genomic::gpi::parseCompilerDiagnostics(
+            "C:/work/main.cpp:12:7: error: cannot convert 'int' to 'Widget'\n"
+            "ld.exe: object.o: undefined reference to `run()'\n");
+        require(diagnostics.size()==2 && diagnostics[0].line==12 && diagnostics[0].column==7 &&
+                diagnostics[0].classification==genomic::gpi::CompilerDiagnosticClass::TypeMismatch &&
+                diagnostics[1].classification==genomic::gpi::CompilerDiagnosticClass::UndefinedReference,
+                "Structured compiler diagnostic parsing failed");
         const auto project=genomic::gpi::emitProject(*parsed.task,42,temp/"generated");
         require(project.files.size()==6,"Expected six project files");
         require(std::filesystem::exists(project.pipelineSource),"Generated source missing");

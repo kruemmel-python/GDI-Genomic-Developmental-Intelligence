@@ -1,8 +1,15 @@
 /build/
+/build_*/
 /bin/
 /obj/
 /generated/
 /KR_BUILD/
+/Temp/
+/GDI_VERIFICATION_REPORT/runs/
+/GDI_VERIFICATION_REPORT/completion_runs/
+/GDI_VERIFICATION_REPORT/workspaces/
+/GDI_VERIFICATION_REPORT/memory/
+/GDI_VERIFICATION_REPORT/completion_memory/
 *.exe
 *.dll
 *.a

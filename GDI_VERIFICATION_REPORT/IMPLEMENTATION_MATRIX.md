@@ -1,0 +1,13 @@
+# Priorisierte Implementierungsmatrix
+
+| Priorität | Komponente | Istzustand / Ursache | Implementierung | Regression / Akzeptanz | Ergebnis |
+|---|---|---|---|---|---|
+| P0 | Fremdprojekt-Safety | nur nichtkryptografischer Baumhash; Symlinks/Junctions und Workspace-Überlappung nicht vollständig geblockt | portable SHA-256-Manifeste, Datei-/Byte-Limits, Reparse-/Symlink-Abweisung, kanonische Workspace-Trennung | bekannte SHA-256-Prüfsumme, negativer Nested-Workspace- und optionaler Symlink-Test | PASS |
+| P0 | Compilerdiagnosen | Reparaturlogik suchte überwiegend freie Textfragmente | strukturiertes GCC/Linker-Modell mit Datei, Zeile, Spalte, Severity und Fehlerklasse | Unit-Test für TypeMismatch und UndefinedReference | PASS |
+| P0 | Kampagnen | identische Seeds konnten im Fallback erneut gemessen werden; kein expliziter Abbruchgrund | Graphhash-Deduplizierung beibehalten, Kandidatenerschöpfung/Duplikate als `termination_reason`, Diagnosezahlen je Cycle | bestehende kumulative Reparaturen und volle CTest-Suite | PASS/PARTIAL: Legacy-Fallback bleibt aus Kompatibilitätsgründen begrenzt aktiv |
+| P0 | ABI-Synthese | zwei feste MDRAFTNE-Funktionsnamen | sprachübergreifende, namensunabhängige skalare ABI-Verträge aus KR/Go/Rust; Typvergleich; begrenzte Ausdrucksgrammatik; Primärquellensemantik vor Testfit | zwei unbekannte Namen, bool/int32, positive/negative/Grenzfälle, realer Link und Sandboxlauf | PASS für begrenzte skalare Grammatik |
+| P1 | GUI-Alias | `gdi_gui.exe` fehlte | Post-Build-Kopie korrigiert und Fehler nicht mehr verschluckt | beide Dateien existieren, gleiche SHA-256, beide Self-Tests Exit 0 | PASS; Alias meldet unter PowerShell weiterhin kanonischen `gpi_gui`-Pfad |
+| P1 | GUI-Identität | keine maschinenlesbare Version/Prozessbelegung | Engine 1.4.0; Self-Test-JSON mit GCC-Version, Prozesspfad und Fremdprojektanalyse | `gdi_gui_self_test.json` | PASS für `gpi_gui`; Alias-Pfadbezeichnung PARTIAL |
+| P1 | MDRAFTNE | nur Core-Compile, kein kompletter GUI-Link/Start | allgemeine ABI-Erkennung und SHA-256-Schutz integriert; `u8path` isoliert repariert | Original-SHA vor/nach identisch; Core-Compile Exit 0 | PARTIAL: vollständiger KR-/Go-/Rust-/SDL-Link und GUI-Funktionstest weiterhin offen |
+| P2 | C++20 | breite proprietäre Tests, keine ISO-Suite | Diagnosemodell und reale GCC-Gegenprüfung erweitert | 74/74 plus Projektkampagnen | PARTIAL: keine ISO-Konformitätsbehauptung |
+| P2 | Gedächtnis | positive Musterübertragung vorhanden, begrenzte Ähnlichkeit/kein vollständiges Negativlernen | strukturierte Diagnose-/Abbruchbelege ergänzt; typ- und signaturgebundene ABI-Prinzipien | Prozessneustarttests der bestehenden Suite | PARTIAL |

@@ -1,0 +1,14 @@
+GDI_BEHAVIORAL_GOAL_V1
+project	developed_square
+namespace	generated
+function	square
+parameter	x
+max-depth	3
+sample	0	0
+sample	1	1
+sample	2	4
+sample	-2	4
+sample	3	9
+sample	-4	16
+check	7	49
+check	-8	64

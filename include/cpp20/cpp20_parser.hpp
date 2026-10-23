@@ -51,12 +51,15 @@ private:
     std::shared_ptr<AstNode> parseEnumDecl();
     std::shared_ptr<AstNode> parseTemplateDecl();
     std::shared_ptr<AstNode> parseConceptDecl();
+    std::shared_ptr<AstNode> parseStaticAssertDecl();
+    std::shared_ptr<AstNode> parseUsingDecl();
     std::shared_ptr<AstNode> parseModuleDecl();
     std::shared_ptr<AstNode> parseImportDecl();
 
     // Statements
     std::shared_ptr<AstNode> parseCompoundStmt();
     std::shared_ptr<AstNode> parseIfStmt();
+    std::shared_ptr<AstNode> parseSwitchStmt();
     std::shared_ptr<AstNode> parseForStmt();
     std::shared_ptr<AstNode> parseWhileStmt();
     std::shared_ptr<AstNode> parseDoWhileStmt();
@@ -71,6 +74,7 @@ private:
     std::shared_ptr<AstNode> parsePostfixExpr();
     std::shared_ptr<AstNode> parsePrimaryExpr();
     std::shared_ptr<AstNode> parseLambdaExpr();
+    std::shared_ptr<AstNode> parseRequiresExpr();
 
     std::shared_ptr<CppType> parseType();
 };

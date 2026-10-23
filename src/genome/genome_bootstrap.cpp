@@ -37,10 +37,10 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
     // 3. Region 0100: C++ Grammar & Lexicon (Full productions)
     // -------------------------------------------------------------
     std::string grammar = "grammar:translation_unit=declaration*;"
-                          "grammar:declaration=function_decl|variable_decl|class_decl|enum_decl|concept_decl|template_decl|namespace_decl|module_decl|import_decl|export_decl;"
-                          "grammar:statement=compound_stmt|if_stmt|for_stmt|while_stmt|do_stmt|return_stmt|try_stmt|coroutine_stmt|break_stmt|continue_stmt|expression_stmt;"
+                          "grammar:declaration=function_decl|variable_decl|class_decl|enum_decl|concept_decl|template_decl|namespace_decl|module_decl|import_decl|export_decl|static_assert_decl|using_decl;"
+                          "grammar:statement=compound_stmt|if_stmt|switch_stmt|case_stmt|default_stmt|for_stmt|while_stmt|do_stmt|return_stmt|try_stmt|coroutine_stmt|break_stmt|continue_stmt|expression_stmt;"
                           "grammar:expression=assignment_expr|binary_expr|unary_expr|call_expr|literal_expr|identifier_expr|lambda_expr;"
-                          "grammar:keywords=alignas,alignof,and,and_eq,asm,auto,bitand,bitor,bool,break,case,catch,char,class,co_await,co_return,co_yield,compl,concept,const,const_cast,consteval,constexpr,constinit,continue,decltype,default,delete,do,double,dynamic_cast,else,enum,explicit,export,extern,false,float,for,friend,goto,if,import,inline,int,long,module,mutable,namespace,new,noexcept,not,not_eq,nullptr,operator,or,or_eq,private,protected,public,register,reinterpret_cast,requires,return,short,signed,sizeof,static,static_assert,static_cast,struct,switch,template,this,thread_local,throw,true,try,typedef,typeid,typename,union,unsigned,using,virtual,void,volatile,wchar_t,while,xor,xor_eq;";
+                          "grammar:keywords=alignas,alignof,and,and_eq,asm,auto,bitand,bitor,bool,break,case,catch,char,char8_t,char16_t,char32_t,class,co_await,co_return,co_yield,compl,concept,const,const_cast,consteval,constexpr,constinit,continue,decltype,default,delete,do,double,dynamic_cast,else,enum,explicit,export,extern,false,float,for,friend,goto,if,import,inline,int,long,module,mutable,namespace,new,noexcept,not,not_eq,nullptr,operator,or,or_eq,private,protected,public,register,reinterpret_cast,requires,return,short,signed,sizeof,static,static_assert,static_cast,struct,switch,template,this,thread_local,throw,true,try,typedef,typeid,typename,union,unsigned,using,virtual,void,volatile,wchar_t,while,xor,xor_eq;";
     grammar += GenomicExpressionGrammar::standardRulesPayload();
     auto gramBases = GenomeDecoder::encodeRegion(RegionKind::CppGrammar, "Cpp20Grammar",
         std::vector<uint8_t>(grammar.begin(), grammar.end()));
@@ -49,9 +49,9 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
 
     const std::string sourceSpace="format=cpp20-source-space-v1;encoding=all-octets;"
         "unit=relative-path+exact-source;integrity=fnv1a64;provenance=genome-hash+region-id;"
-        "edit-operators=token-integer-delta,empirical-numeric-calibration,insert-standard-header,infer-link-provider,coerce-numeric-string-literal,local-integer-neighborhood;"
-        "project-structures=typed-functions,header-source-executable-test,independent-behavior-tests;"
-        "composition-operators=copy,add,subtract,multiply,divide,modulo,less,less-equal,greater,greater-equal,equal,not-equal,logical-and,logical-or,logical-not,negate,select,call;"
+        "edit-operators=token-integer-delta,empirical-numeric-calibration,insert-standard-header,infer-link-provider,coerce-numeric-string-literal,local-integer-neighborhood,modernize-deprecated-cpp20-api;"
+        "project-structures=typed-functions,header-source-executable-test,independent-behavior-tests,user-defined-types,enum-types,type-methods,multi-module-components,cpp20-concepts,cpp20-templates,switch-dispatch;"
+        "composition-operators=copy,add,subtract,multiply,divide,modulo,less,less-equal,greater,greater-equal,equal,not-equal,logical-and,logical-or,logical-not,negate,select,switch,call,construct,field,method,abs,min,max,clamp,bitwise-and,bitwise-or,bitwise-xor,shift-left,shift-right;"
         "header-symbols=cout@iostream,cin@iostream,cerr@iostream,vector@vector,string@string,sort@algorithm,"
         "unordered_map@unordered_map,unordered_set@unordered_set,priority_queue@queue,setprecision@iomanip,"
         "isfinite@cmath,fmod@cmath,optional@optional,tuple@tuple;"

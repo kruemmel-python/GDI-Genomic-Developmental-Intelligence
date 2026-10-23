@@ -1292,6 +1292,411 @@ void test_gpi_task_genome_mutation_changes_allowed_programs() {
     TEST_ASSERT(policy.validate(*accepted.task).empty(), "Genomic add permission honored");
     TEST_ASSERT(!policy.validate(*rejected.task).empty(), "Missing genomic mul permission blocks program");
 }
+
+// -------------------------------------------------------------
+// Complete C++20 Rulebook Verification Suite:
+// - Standalone switch/case/default syntax, semantics, constexpr & IR VM
+// - Complete C++20 Type Specifiers, Reference Collapsing & Transformations
+// - Multi-Parameter Template Deduction, Forwarding Refs, CTAD, Partial Ordering & SFINAE
+// - Concept DNF/CNF Normalization & Logical Subsumption
+// - Overload Resolution ICS Ranking, Reference Binding & Tie-Breaker Cascade
+// - Object Lifetimes, RAII Reverse Destruction, Temporary Materialization & Borrow/Move Safety
+// -------------------------------------------------------------
+void test_cpp20_complete_switch_syntax_semantics_constexpr_and_vm() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+
+    // 1. Parse standalone switch statement with C++17/20 init-statement, fallthrough, cases & default
+    std::string switchSrc = R"(
+        int classify(int code) {
+            int acc = 0;
+            switch (int shifted = code + 1; shifted) {
+                case 1:
+                    acc = 10;
+                    break;
+                case 2:
+                    acc = 20;
+                    [[fallthrough]];
+                case 3:
+                    acc = acc + 5;
+                    break;
+                default:
+                    acc = 99;
+                    break;
+            }
+            return acc;
+        }
+    )";
+    auto tu = Cpp20Parser::parseWithGenome(switchSrc, *sys.ruleEngine);
+    TEST_ASSERT(tu && !tu->children.empty(), "Genomic parser must parse standalone switch statement");
+    auto fnDecl = tu->children[0];
+    TEST_ASSERT(fnDecl->kind == AstNodeKind::FunctionDecl, "Top node must be FunctionDecl");
+
+    // Verify AST contains SwitchStmt, CaseStmt, DefaultStmt and round-trips through Cpp20Printer
+    std::string printed = Cpp20Printer::print(*fnDecl);
+    TEST_ASSERT(printed.find("switch (") != std::string::npos, "Printer must emit switch statement");
+    TEST_ASSERT(printed.find("case 1:") != std::string::npos, "Printer must emit case label");
+    TEST_ASSERT(printed.find("default:") != std::string::npos, "Printer must emit default label");
+
+    // 2. Semantic validation of valid switch statement
+    SemanticAnalyzer validSem(sys.ruleEngine.get());
+    TEST_ASSERT(validSem.analyze(*fnDecl), "Valid switch function must pass semantic analysis");
+
+    // 3. Semantic rejection of duplicate case values
+    auto dupSwitch = Cpp20Parser::parseWithGenome(
+        "int bad_dup(int x) { switch (x) { case 1: return 10; case 1: return 20; default: return 0; } }",
+        *sys.ruleEngine);
+    SemanticAnalyzer dupSem(sys.ruleEngine.get());
+    TEST_ASSERT(!dupSem.analyze(*dupSwitch), "Duplicate switch case label must be rejected by SemanticAnalyzer");
+
+    // 4. Semantic rejection of non-integral/non-enum switch condition
+    auto floatSwitch = Cpp20Parser::parseWithGenome(
+        "int bad_cond(double d) { switch (d) { case 1: return 1; default: return 0; } }",
+        *sys.ruleEngine);
+    SemanticAnalyzer floatSem(sys.ruleEngine.get());
+    TEST_ASSERT(!floatSem.analyze(*floatSwitch), "Floating-point switch condition must be rejected by SemanticAnalyzer");
+
+    // 5. Semantic rejection of multiple default labels
+    auto multiDefSwitch = Cpp20Parser::parseWithGenome(
+        "int bad_def(int x) { switch (x) { default: return 1; default: return 2; } }",
+        *sys.ruleEngine);
+    SemanticAnalyzer defSem(sys.ruleEngine.get());
+    TEST_ASSERT(!defSem.analyze(*multiDefSwitch), "Multiple default labels in switch must be rejected");
+
+    // 6. Constexpr evaluation of switch statement (including fallthrough and break)
+    ConstexprEngine ceEngine;
+    ceEngine.registerConstexprFunction("classify", fnDecl);
+    auto call0 = AstNode::makeCallExpr("classify", {AstNode::makeLiteralInt(0)}); // shifted=1 -> 10
+    auto call1 = AstNode::makeCallExpr("classify", {AstNode::makeLiteralInt(1)}); // shifted=2 -> 20 + 5 (fallthrough to case 3!) = 25
+    auto call2 = AstNode::makeCallExpr("classify", {AstNode::makeLiteralInt(2)}); // shifted=3 -> 0 + 5 = 5
+    auto call9 = AstNode::makeCallExpr("classify", {AstNode::makeLiteralInt(9)}); // shifted=10 -> default = 99
+    auto r0 = ceEngine.evaluateExpression(*call0);
+    auto r1 = ceEngine.evaluateExpression(*call1);
+    auto r2 = ceEngine.evaluateExpression(*call2);
+    auto r9 = ceEngine.evaluateExpression(*call9);
+    TEST_ASSERT(r0 && r0->iVal == 10, "Constexpr switch case 1 must return 10");
+    TEST_ASSERT(r1 && r1->iVal == 25, "Constexpr switch case 2 fallthrough into case 3 must return 25");
+    TEST_ASSERT(r2 && r2->iVal == 5,  "Constexpr switch case 3 must return 5");
+    TEST_ASSERT(r9 && r9->iVal == 99, "Constexpr switch default branch must return 99");
+
+    // 7. GenomeCompiler IR lowering & GenomeVm execution of switch statement
+    auto vmSwitchTu = Cpp20Parser::parseWithGenome(R"(
+        int main() {
+            int x = 2;
+            int out = 0;
+            switch (x) {
+                case 1: out = 100; break;
+                case 2: out = 200; [[fallthrough]];
+                case 3: out += 30; break;
+                default: out = 999; break;
+            }
+            return out;
+        }
+    )", *sys.ruleEngine);
+    GenomeCompiler compiler(sys.ruleEngine.get());
+    auto irMod = compiler.compile(*vmSwitchTu->children[0], "SwitchVmMod");
+    MolecularPool vmPool;
+    SubstrateKernel vmKernel;
+    GenomeVm vm(&vmKernel, &vmPool);
+    auto vmRes = vm.execute(*irMod, "main");
+    TEST_ASSERT(vmRes.status == VmExecutionStatus::Success && vmRes.returnValue.iVal == 230,
+                "GenomeVm execution of compiled switch statement with fallthrough must return 230");
+}
+
+void test_cpp20_complete_type_analysis_and_reference_collapsing() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+
+    // 1. Multi-word and qualified C++20 type parsing
+    auto tu = Cpp20Parser::parseWithGenome(R"(
+        unsigned long long ull = 42;
+        long int li = -7;
+        unsigned short us = 12;
+        const int* ptrToConst = nullptr;
+    )", *sys.ruleEngine);
+    TEST_ASSERT(tu && tu->children.size() == 4, "Parser must parse multi-word C++20 declarations");
+    TEST_ASSERT(tu->children[0]->evaluatedType && tu->children[0]->evaluatedType->kind == TypeKind::UInt64,
+                "'unsigned long long' must resolve to TypeKind::UInt64");
+    TEST_ASSERT(tu->children[1]->evaluatedType && tu->children[1]->evaluatedType->kind == TypeKind::Int64,
+                "'long int' must resolve to TypeKind::Int64");
+    TEST_ASSERT(tu->children[2]->evaluatedType && tu->children[2]->evaluatedType->kind == TypeKind::UInt16,
+                "'unsigned short' must resolve to TypeKind::UInt16");
+    TEST_ASSERT(tu->children[3]->evaluatedType && tu->children[3]->evaluatedType->isPointer() &&
+                tu->children[3]->evaluatedType->pointeeType->isConst,
+                "'const int*' must be pointer to const int");
+
+    // 2. Reference collapsing rules ([dcl.ref]):
+    // T& + & -> T&, T& + && -> T&, T&& + & -> T&, T&& + && -> T&&
+    auto intT = CppType::makeInt32();
+    auto lref = CppType::makeLValueRef(intT);
+    auto rref = CppType::makeRValueRef(intT);
+
+    auto l_l = CppType::collapseReference(lref, true);
+    auto l_r = CppType::collapseReference(lref, false);
+    auto r_l = CppType::collapseReference(rref, true);
+    auto r_r = CppType::collapseReference(rref, false);
+
+    TEST_ASSERT(l_l->isLValueReference(), "T& & must collapse to T&");
+    TEST_ASSERT(l_r->isLValueReference(), "T& && must collapse to T&");
+    TEST_ASSERT(r_l->isLValueReference(), "T&& & must collapse to T&");
+    TEST_ASSERT(r_r->isRValueReference(), "T&& && must collapse to T&&");
+
+    // 3. Type transformations: removeCVRef and decay
+    auto constIntRef = CppType::makeLValueRef(intT->withCV(true, false));
+    auto stripped = constIntRef->removeCVRef();
+    TEST_ASSERT(!stripped->isReference() && !stripped->isConst && stripped->kind == TypeKind::Int32,
+                "removeCVRef on const int& must yield int");
+    auto arrType = CppType::makeArray(intT, 8);
+    auto decayed = arrType->decay();
+    TEST_ASSERT(decayed->isPointer() && decayed->pointeeType->kind == TypeKind::Int32,
+                "decay on int[8] must yield int*");
+}
+
+void test_cpp20_template_deduction_forwarding_ctad_and_partial_ordering() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+    TemplateEngine engine(sys.ruleEngine.get());
+
+    // 1. Multi-parameter pattern deduction: template<typename T, typename U> void f(const T*, U&)
+    TemplateParam paramT{"T", true, false, nullptr, 0, false, ""};
+    TemplateParam paramU{"U", true, false, nullptr, 0, false, ""};
+    auto patternT = std::make_shared<CppType>(TypeKind::TemplateParam, true, false, "T"); // const T
+    auto ptrConstT = CppType::makePointer(patternT);                                      // const T*
+    auto patternU = std::make_shared<CppType>(TypeKind::TemplateParam, false, false, "U");
+    auto refU = CppType::makeLValueRef(patternU);                                         // U&
+
+    auto arg1 = CppType::makePointer(CppType::makeInt32()->withCV(true, false));          // const int*
+    auto arg2 = CppType::makeFloat64();                                                   // double lvalue
+    auto res = engine.deduceAndSubstituteFunctionTemplate(
+        "f", {paramT, paramU}, {ptrConstT, refU}, CppType::makeVoid(),
+        {arg1, arg2}, {ValueCategory::PRValue, ValueCategory::LValue});
+    TEST_ASSERT(res.success, "Multi-parameter pattern deduction must succeed");
+    TEST_ASSERT(res.deducedTypeMap.at("T")->kind == TypeKind::Int32 && !res.deducedTypeMap.at("T")->isConst,
+                "T in 'const T*' from 'const int*' must deduce to non-const int");
+    TEST_ASSERT(res.deducedTypeMap.at("U")->kind == TypeKind::Float64,
+                "U in 'U&' from 'double' must deduce to double");
+
+    // 2. Forwarding reference deduction (T&&): lvalue int -> T = int&, rvalue int -> T = int
+    auto plainT = std::make_shared<CppType>(TypeKind::TemplateParam, false, false, "T");
+    auto fwdRefT = CppType::makeRValueRef(plainT, true);
+    auto resLval = engine.deduceAndSubstituteFunctionTemplate(
+        "fwd", {paramT}, {fwdRefT}, CppType::makeVoid(),
+        {CppType::makeInt32()}, {ValueCategory::LValue});
+    TEST_ASSERT(resLval.success && resLval.deducedType->isLValueReference() &&
+                resLval.substitutedParamTypes[0]->isLValueReference(),
+                "Forwarding reference T&& with lvalue int must deduce T = int& and collapse param to int&");
+
+    auto resRval = engine.deduceAndSubstituteFunctionTemplate(
+        "fwd", {paramT}, {fwdRefT}, CppType::makeVoid(),
+        {CppType::makeInt32()}, {ValueCategory::PRValue});
+    TEST_ASSERT(resRval.success && !resRval.deducedType->isReference() &&
+                resRval.substitutedParamTypes[0]->isRValueReference(),
+                "Forwarding reference T&& with rvalue int must deduce T = int and keep param as int&&");
+
+    // 3. Conflicting deduction failure (SFINAE): template<typename T> void same(T, T) called with (int, double)
+    auto conflictRes = engine.deduceAndSubstituteFunctionTemplate(
+        "same", {paramT}, {plainT, plainT}, CppType::makeVoid(),
+        {CppType::makeInt32(), CppType::makeFloat64()});
+    TEST_ASSERT(!conflictRes.success, "Conflicting deduction of T from (int, double) must fail cleanly");
+
+    // 4. Non-deduced context (std::type_identity_t<T>): deduced from first param, substituted into second
+    auto nonDeducedT = std::make_shared<CppType>(TypeKind::TemplateParam, false, false, "T");
+    nonDeducedT->isNonDeduced = true;
+    auto nonDedRes = engine.deduceAndSubstituteFunctionTemplate(
+        "id_ctx", {paramT}, {plainT, nonDeducedT}, CppType::makeVoid(),
+        {CppType::makeInt64(), CppType::makeInt32()});
+    TEST_ASSERT(nonDedRes.success && nonDedRes.deducedType->kind == TypeKind::Int64,
+                "Non-deduced context must not cause deduction conflict with first parameter");
+
+    // 5. Parameter pack deduction (Ts...):
+    TemplateParam packParam{"Ts", true, true, nullptr, 0, false, ""};
+    auto packPattern = std::make_shared<CppType>(TypeKind::TemplateParam, false, false, "Ts");
+    packPattern->isPackExpansion = true;
+    auto packRes = engine.deduceAndSubstituteFunctionTemplate(
+        "variadic", {packParam}, {packPattern}, CppType::makeVoid(),
+        {CppType::makeInt32(), CppType::makeFloat64(), CppType::makeBool()});
+    TEST_ASSERT(packRes.success && packRes.deducedPackMap["Ts"].size() == 3,
+                "Parameter pack Ts... must deduce all 3 trailing argument types");
+
+    // 6. Partial ordering of function templates: f(T*) is more specialized than f(T)
+    auto ptrT = CppType::makePointer(plainT);
+    int order = engine.compareFunctionTemplateSpecialization(
+        {paramT}, {ptrT}, "",
+        {paramT}, {plainT}, "");
+    TEST_ASSERT(order == -1, "Template f(T*) must be ordered as more specialized than f(T)");
+
+    // 7. Class Template Argument Deduction (CTAD)
+    DeductionGuide guide;
+    guide.className = "Pair";
+    guide.templateParams = {paramT, paramU};
+    guide.constructorParamPatterns = {plainT, patternU};
+    guide.deducedClassTemplateArgs = {plainT, patternU};
+    engine.registerDeductionGuide(guide);
+    auto ctadRes = engine.deduceClassTemplateArguments("Pair", {CppType::makeInt32(), CppType::makeFloat64()});
+    TEST_ASSERT(ctadRes.success && ctadRes.substitutedParamTypes.size() == 2 &&
+                ctadRes.substitutedParamTypes[0]->kind == TypeKind::Int32 &&
+                ctadRes.substitutedParamTypes[1]->kind == TypeKind::Float64,
+                "CTAD must deduce Pair<int, double> from constructor arguments (int, double)");
+}
+
+void test_cpp20_concept_dnf_normalization_and_subsumption() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+    TemplateEngine engine(sys.ruleEngine.get());
+
+    // Register composite concepts
+    engine.registerConcept({"IntegralAndCopyable", {"T"}, "integral<T> && copy_constructible<T>", nullptr});
+    engine.registerConcept({"SignedAndCopyable", {"T"}, "IntegralAndCopyable<T> && signed_integral<T>", nullptr});
+    engine.registerConcept({"IntegralOrFloating", {"T"}, "integral<T> || floating_point<T>", nullptr});
+
+    // Conjunction subsumption: SignedAndCopyable subsumes IntegralAndCopyable, and IntegralAndCopyable subsumes integral
+    TEST_ASSERT(engine.isMoreConstrained("SignedAndCopyable<T>", "IntegralAndCopyable<T>"),
+                "SignedAndCopyable must subsume IntegralAndCopyable via DNF normalization");
+    TEST_ASSERT(engine.isMoreConstrained("IntegralAndCopyable<T>", "integral<T>"),
+                "Conjunction A && B must subsume A");
+    TEST_ASSERT(!engine.isMoreConstrained("integral<T>", "IntegralAndCopyable<T>"),
+                "A must not subsume A && B");
+
+    // Disjunction subsumption: integral<T> subsumes (integral<T> || floating_point<T>)
+    TEST_ASSERT(engine.isMoreConstrained("integral<T>", "IntegralOrFloating<T>"),
+                "P must subsume P || Q");
+    TEST_ASSERT(!engine.isMoreConstrained("IntegralOrFloating<T>", "integral<T>"),
+                "P || Q must not subsume P");
+}
+
+void test_cpp20_overload_resolution_reference_binding_and_tiebreakers() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+
+    // 1. Lvalue vs Rvalue reference overload resolution: f(int&) vs f(const int&) vs f(int&&)
+    SemanticAnalyzer refAnalyzer(sys.ruleEngine.get());
+    auto intT = CppType::makeInt32();
+    auto constIntT = intT->withCV(true, false);
+    refAnalyzer.registerFunction({"pickRef", CppType::makeInt32(), {CppType::makeLValueRef(intT)}});       // returns int32 (1)
+    refAnalyzer.registerFunction({"pickRef", CppType::makeInt64(), {CppType::makeLValueRef(constIntT)}});  // returns int64 (2)
+    refAnalyzer.registerFunction({"pickRef", CppType::makeFloat64(), {CppType::makeRValueRef(intT)}});     // returns float64 (3)
+
+    // Non-const lvalue int -> selects f(int&) (returns Int32)
+    auto mLval = refAnalyzer.resolveOverload("pickRef", {intT}, {ValueCategory::LValue});
+    TEST_ASSERT(mLval && mLval->returnType->kind == TypeKind::Int32,
+                "Non-const lvalue must prefer f(int&) over f(const int&)");
+
+    // Const lvalue int -> cannot bind to int& or int&&, selects f(const int&) (returns Int64)
+    auto mConstLval = refAnalyzer.resolveOverload("pickRef", {constIntT}, {ValueCategory::LValue});
+    TEST_ASSERT(mConstLval && mConstLval->returnType->kind == TypeKind::Int64,
+                "Const lvalue must select f(const int&)");
+
+    // Rvalue int -> prefers f(int&&) over f(const int&) (returns Float64)
+    auto mRval = refAnalyzer.resolveOverload("pickRef", {intT}, {ValueCategory::PRValue});
+    TEST_ASSERT(mRval && mRval->returnType->kind == TypeKind::Float64,
+                "Rvalue must prefer f(int&&) over f(const int&)");
+
+    // 2. Template partial ordering & concept subsumption tie-breakers in Overload Resolution
+    SemanticAnalyzer tmplAnalyzer(sys.ruleEngine.get());
+    TemplateParam pT{"T", true, false, nullptr, 0, false, ""};
+    auto patT = std::make_shared<CppType>(TypeKind::TemplateParam, false, false, "T");
+
+    // Overload 1: template<typename T> requires integral<T> int32 dispatch(T)
+    tmplAnalyzer.registerFunction({"dispatch", CppType::makeInt32(), {patT}, false, true, {pT}, "integral<T>"});
+    // Overload 2: template<typename T> requires signed_integral<T> int64 dispatch(T)
+    tmplAnalyzer.registerFunction({"dispatch", CppType::makeInt64(), {patT}, false, true, {pT}, "signed_integral<T>"});
+
+    // Call dispatch(int32_t) -> both viable, signed_integral<T> subsumes integral<T> -> returns Int64!
+    auto mSigned = tmplAnalyzer.resolveOverload("dispatch", {CppType::makeInt32()});
+    TEST_ASSERT(mSigned && mSigned->returnType->kind == TypeKind::Int64,
+                "Overload resolution must select more-constrained template via concept subsumption");
+
+    // Call dispatch(uint32_t) -> signed_integral<T> fails SFINAE/constraint -> selects integral<T> (returns Int32)
+    auto mUnsigned = tmplAnalyzer.resolveOverload("dispatch", {CppType::makeUInt32()});
+    TEST_ASSERT(mUnsigned && mUnsigned->returnType->kind == TypeKind::Int32,
+                "Overload resolution must filter out unsatisfied constrained template and select viable integral<T>");
+}
+
+void test_cpp20_lifetime_raii_temporary_extension_dangling_and_move_safety() {
+    auto sys = GenomeBootstrap::buildCompleteSystem();
+
+    // 1. Reverse-order RAII destruction trace at block exit and early return + temporary lifetime extension
+    auto raiiTu = Cpp20Parser::parseWithGenome(R"(
+        int run_raii() {
+            int first = 10;
+            const int& extended = 42;
+            {
+                int innerA = 1;
+                int innerB = 2;
+            }
+            return first + extended;
+        }
+    )", *sys.ruleEngine);
+    SemanticAnalyzer raiiSem(sys.ruleEngine.get());
+    TEST_ASSERT(raiiSem.analyze(*raiiTu), "Valid RAII and lifetime-extended reference function must pass analysis");
+
+    const auto& log = raiiSem.getLifetimeTrace();
+    bool sawExtendedTemp = false;
+    int idxDestroyInnerB = -1;
+    int idxDestroyInnerA = -1;
+    int idxDestroyExtended = -1;
+    int idxDestroyFirst = -1;
+    for (size_t i = 0; i < log.size(); ++i) {
+        if (log[i].kind == LifetimeEvent::Kind::ExtendTemporaryLifetime &&
+            log[i].objectName.find("extended") != std::string::npos)
+            sawExtendedTemp = true;
+        if (log[i].kind == LifetimeEvent::Kind::DestroyLocalAtScopeExit ||
+            log[i].kind == LifetimeEvent::Kind::DestroyExtendedTemporaryAtScopeExit) {
+            if (log[i].objectName == "innerB" && idxDestroyInnerB < 0) idxDestroyInnerB = static_cast<int>(i);
+            if (log[i].objectName == "innerA" && idxDestroyInnerA < 0) idxDestroyInnerA = static_cast<int>(i);
+            if (log[i].objectName.find("extended") != std::string::npos && idxDestroyExtended < 0)
+                idxDestroyExtended = static_cast<int>(i);
+            if (log[i].objectName == "first" && idxDestroyFirst < 0) idxDestroyFirst = static_cast<int>(i);
+        }
+    }
+    TEST_ASSERT(sawExtendedTemp, "Binding const int& to PRValue must record TemporaryLifetimeExtended");
+    TEST_ASSERT(idxDestroyInnerB >= 0 && idxDestroyInnerA > idxDestroyInnerB,
+                "Inner block locals must be destroyed in reverse declaration order (innerB before innerA)");
+    TEST_ASSERT(idxDestroyExtended >= 0 && idxDestroyFirst > idxDestroyExtended,
+                "Function locals must be destroyed in reverse declaration order on return (extended before first)");
+
+    // 2. Dangling reference detection on returning local variable by reference
+    auto danglingRefTu = Cpp20Parser::parseWithGenome(R"(
+        const int& bad_return_ref() {
+            int localVal = 99;
+            return localVal;
+        }
+    )", *sys.ruleEngine);
+    SemanticAnalyzer danglingSem(sys.ruleEngine.get());
+    TEST_ASSERT(!danglingSem.analyze(*danglingRefTu),
+                "Returning reference to local automatic variable must be rejected as dangling reference");
+
+    // 3. Dangling pointer detection on returning address of local variable
+    auto danglingPtrTu = Cpp20Parser::parseWithGenome(R"(
+        int* bad_return_ptr() {
+            int localVal = 99;
+            return &localVal;
+        }
+    )", *sys.ruleEngine);
+    SemanticAnalyzer danglingPtrSem(sys.ruleEngine.get());
+    TEST_ASSERT(!danglingPtrSem.analyze(*danglingPtrTu),
+                "Returning address of local automatic variable must be rejected as dangling pointer");
+
+    // 4. Use-after-move detection (std::move followed by read without reinitialization)
+    auto moveTu = Cpp20Parser::parseWithGenome(R"(
+        int bad_use_after_move() {
+            int resource = 50;
+            int moved = std::move(resource);
+            return resource + moved;
+        }
+    )", *sys.ruleEngine);
+    SemanticAnalyzer moveSem(sys.ruleEngine.get());
+    TEST_ASSERT(!moveSem.analyze(*moveTu),
+                "Reading a variable after std::move without re-assignment must be rejected");
+
+    // 5. Re-assignment after std::move restores validity
+    auto moveReinitTu = Cpp20Parser::parseWithGenome(R"(
+        int ok_reinit_after_move() {
+            int resource = 50;
+            int moved = std::move(resource);
+            resource = 10;
+            return resource + moved;
+        }
+    )", *sys.ruleEngine);
+    SemanticAnalyzer moveReinitSem(sys.ruleEngine.get());
+    TEST_ASSERT(moveReinitSem.analyze(*moveReinitTu),
+                "Re-assigning a moved-from variable before reading must pass lifetime analysis");
+}
 int main() {
     std::cout << "======================================================================\n";
     std::cout << "        RUNNING COMPLETE BLUEPRINT SECTION 43 VERIFICATION TESTS      \n";
@@ -1376,6 +1781,14 @@ int main() {
     RUN_TEST(test_gpi_task_rejects_untrusted_or_ill_typed_expressions);
     RUN_TEST(test_gpi_task_genomic_policy_and_molecular_activation);
     RUN_TEST(test_gpi_task_genome_mutation_changes_allowed_programs);
+
+    // Complete C++20 Rulebook Verification Suite
+    RUN_TEST(test_cpp20_complete_switch_syntax_semantics_constexpr_and_vm);
+    RUN_TEST(test_cpp20_complete_type_analysis_and_reference_collapsing);
+    RUN_TEST(test_cpp20_template_deduction_forwarding_ctad_and_partial_ordering);
+    RUN_TEST(test_cpp20_concept_dnf_normalization_and_subsumption);
+    RUN_TEST(test_cpp20_overload_resolution_reference_binding_and_tiebreakers);
+    RUN_TEST(test_cpp20_lifetime_raii_temporary_extension_dangling_and_move_safety);
 
     std::cout << "\n======================================================================\n";
     std::cout << "SUMMARY: " << g_testsPassed << " PASSED, " << g_testsFailed << " FAILED.\n";

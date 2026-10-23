@@ -147,11 +147,35 @@ GenerativeProjectGraph applyVerifiedTransformation(const GenerativeProjectGraph&
     } else if(transformation.kind==ProjectTransformationKind::AddLinkDependency) {
         result.addDependency(transformation.node,transformation.auxiliary,ProjectDependencyKind::Links);
     } else {
-        auto content=result.nodeContent(transformation.node);const auto first=content.find(transformation.before);
-        if(first!=std::string::npos) {
-            if(content.find(transformation.before,first+transformation.before.size())!=std::string::npos)
-                throw std::invalid_argument("Transfer token context is ambiguous");
-            content.replace(first,transformation.before.size(),transformation.after);
+        auto content=result.nodeContent(transformation.node);
+        if(transformation.auxiliary=="modernize-deprecated-cpp20-api") {
+            bool replacedAny=false;
+            for(const auto* prefix:{"std::filesystem::u8path(","fs::u8path("}) {
+                const std::string pfx(prefix);
+                std::size_t pos=0;
+                while((pos=content.find(pfx,pos))!=std::string::npos) {
+                    if(pos>0&&(std::isalnum(static_cast<unsigned char>(content[pos-1]))||content[pos-1]=='_')) {
+                        pos+=pfx.size();continue;
+                    }
+                    std::size_t argStart=pos+pfx.size();
+                    std::size_t cur=argStart;
+                    int depth=1;
+                    while(cur<content.size()&&depth>0) {
+                        if(content[cur]=='(')++depth;
+                        else if(content[cur]==')')--depth;
+                        ++cur;
+                    }
+                    if(depth==0) {
+                        const std::string argExpr=content.substr(argStart,cur-argStart-1);
+                        const std::string nsPrefix=(pfx.rfind("std::filesystem::",0)==0)?"std::filesystem::path":"fs::path";
+                        const std::string repl=nsPrefix+"(std::u8string(reinterpret_cast<const char8_t*>(("+argExpr+").data()), ("+argExpr+").size()))";
+                        content.replace(pos,cur-pos,repl);
+                        pos+=repl.size();
+                        replacedAny=true;
+                    } else break;
+                }
+            }
+            if(!replacedAny)throw std::invalid_argument("Transfer deprecated C++20 API context is absent");
         } else if(transformation.auxiliary=="coerce-numeric-string-literal") {
             struct Match {std::size_t offset;std::size_t length;std::string replacement;};
             std::vector<Match> matches;
@@ -164,7 +188,14 @@ GenerativeProjectGraph applyVerifiedTransformation(const GenerativeProjectGraph&
             }
             if(matches.size()!=1)throw std::invalid_argument("Transfer numeric string context is absent or ambiguous");
             content.replace(matches.front().offset,matches.front().length,matches.front().replacement);
-        } else throw std::invalid_argument("Transfer token context is absent");
+        } else {
+            const auto first=content.find(transformation.before);
+            if(first!=std::string::npos) {
+                if(content.find(transformation.before,first+transformation.before.size())!=std::string::npos)
+                    throw std::invalid_argument("Transfer token context is ambiguous");
+                content.replace(first,transformation.before.size(),transformation.after);
+            } else throw std::invalid_argument("Transfer token context is absent");
+        }
         result.replaceNodeContent(transformation.node,content);
     }
     result.validate();return result;

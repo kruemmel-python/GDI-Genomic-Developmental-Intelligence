@@ -8,11 +8,37 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <unordered_set>
 
 namespace genomic::gpi {
+std::vector<CompilerDiagnostic> parseCompilerDiagnostics(const std::string& text) {
+    std::vector<CompilerDiagnostic> result;
+    const std::regex located(R"(^(.+):([0-9]+):([0-9]+):\s*(fatal error|error|warning|note):\s*(.*)$)");
+    std::istringstream input(text);std::string line;
+    auto classify=[](const std::string& message,const std::string& severity) {
+        if(message.find("undefined reference")!=std::string::npos||message.find("unresolved external")!=std::string::npos)return CompilerDiagnosticClass::UndefinedReference;
+        if(message.find("multiple definition")!=std::string::npos||message.find("already defined")!=std::string::npos)return CompilerDiagnosticClass::DuplicateDefinition;
+        if(message.find("deprecated")!=std::string::npos)return CompilerDiagnosticClass::DeprecatedApi;
+        if(message.find("not declared")!=std::string::npos||message.find("unknown type")!=std::string::npos||message.find("not a member")!=std::string::npos)return CompilerDiagnosticClass::MissingDeclaration;
+        if(message.find("constraints not satisfied")!=std::string::npos)return CompilerDiagnosticClass::ConstraintFailure;
+        if(message.find("cannot convert")!=std::string::npos||message.find("invalid conversion")!=std::string::npos||message.find("no matching function")!=std::string::npos)return CompilerDiagnosticClass::TypeMismatch;
+        if(severity=="warning")return CompilerDiagnosticClass::Warning;
+        if(severity=="error"||severity=="fatal error")return CompilerDiagnosticClass::Syntax;
+        return CompilerDiagnosticClass::Unknown;
+    };
+    while(std::getline(input,line)){
+        std::smatch match;
+        if(std::regex_match(line,match,located)){
+            CompilerDiagnostic item;item.file=match[1].str();item.line=static_cast<std::size_t>(std::stoull(match[2].str()));item.column=static_cast<std::size_t>(std::stoull(match[3].str()));item.severity=match[4].str();item.message=match[5].str();item.raw=line;item.classification=classify(item.message,item.severity);result.push_back(std::move(item));
+        } else if(line.find("undefined reference")!=std::string::npos||line.find("unresolved external")!=std::string::npos||line.find("multiple definition")!=std::string::npos){
+            CompilerDiagnostic item;item.severity="error";item.message=line;item.raw=line;item.classification=classify(line,item.severity);result.push_back(std::move(item));
+        }
+    }
+    return result;
+}
 namespace {
 std::string json(const std::string& value) {
     std::string result="\"";
@@ -53,6 +79,15 @@ std::size_t tokenOffset(const std::string& source,uint32_t line,uint32_t column)
     return offset+static_cast<std::size_t>(column-1);
 }
 void writeCampaign(AutonomousProjectResult& result,const AutonomousProjectConfig& config) {
+    for(auto& cycle:result.cycles) {
+        if(!cycle.diagnostics.empty())continue;
+        for(auto it=cycle.evidence.checks.rbegin();it!=cycle.evidence.checks.rend();++it) {
+            if(!it->passed && !it->standardError.empty()) {
+                cycle.diagnostics=parseCompilerDiagnostics(read(it->standardError));
+                break;
+            }
+        }
+    }
     if(result.success&&!result.experienceTransferred&&!config.experienceStore.empty()) {
         ProjectExperienceStore store(config.experienceStore);
         store.appendGroup(result.transformations);
@@ -64,12 +99,15 @@ void writeCampaign(AutonomousProjectResult& result,const AutonomousProjectConfig
           <<",\n  \"learned_transformations\": "<<result.transformations.size()
           <<",\n  \"experience_transferred\": "<<(result.experienceTransferred?"true":"false")
           <<",\n  \"experience_origin_graph_hash\": "<<result.experienceOriginGraphHash
+          <<",\n  \"termination_reason\": "<<json(result.terminationReason)
           <<",\n  \"cycles\": [\n";
     for(std::size_t i=0;i<result.cycles.size();++i) {
         const auto& cycle=result.cycles[i];
         report<<"    {\"number\": "<<cycle.number<<", \"hypothesis\": "<<json(cycle.hypothesis)
               <<", \"rationale\": "<<json(cycle.rationale)<<", \"graph_hash\": "<<cycle.evidence.graphHash
-              <<", \"verified\": "<<(cycle.evidence.success?"true":"false")<<"}"
+              <<", \"verified\": "<<(cycle.evidence.success?"true":"false")
+              <<", \"diagnostics\": "<<cycle.diagnostics.size()
+              <<", \"duplicate_strategy_suppressed\": "<<(cycle.duplicateStrategySuppressed?"true":"false")<<"}"
               <<(i+1==result.cycles.size()?"\n":",\n");
     }
     report<<"  ]\n}\n";
@@ -210,6 +248,54 @@ std::vector<MutationProposal> compileMutationProposals(const GenerativeProjectGr
                     "Compiler rejection activated numeric string-literal coercion in node "+nodeId,
                     {{ProjectTransformationKind::ReplaceExactToken,nodeId,"coerce-numeric-string-literal",before,std::to_string(numeric)}}});
             }}catch(...){continue;}
+        }
+    }
+
+    if(graph.mutationEnabled("modernize-deprecated-cpp20-api")&&
+       (diagnostic.find("u8path")!=std::string::npos||diagnostic.find("deprecated")!=std::string::npos)) {
+        std::size_t number=0;
+        for(const auto& nodeId:closure) {
+            const auto node=std::find_if(graph.nodes().begin(),graph.nodes().end(),[&](const auto& item){return item.id==nodeId;});
+            if(node==graph.nodes().end()||(node->kind!=ProjectNodeKind::Source&&
+               node->kind!=ProjectNodeKind::ModuleImplementation&&node->kind!=ProjectNodeKind::Test))continue;
+            const auto source=graph.nodeContent(nodeId);
+            auto changed=source;
+            std::string firstBefore,firstAfter;
+            bool replacedAny=false;
+            for(const auto* prefix:{"std::filesystem::u8path(","fs::u8path("}) {
+                const std::string pfx(prefix);
+                std::size_t pos=0;
+                while((pos=changed.find(pfx,pos))!=std::string::npos) {
+                    if(pos>0&&(std::isalnum(static_cast<unsigned char>(changed[pos-1]))||changed[pos-1]=='_')) {
+                        pos+=pfx.size();continue;
+                    }
+                    const std::size_t argStart=pos+pfx.size();
+                    std::size_t cur=argStart;
+                    int depth=1;
+                    while(cur<changed.size()&&depth>0) {
+                        if(changed[cur]=='(')++depth;
+                        else if(changed[cur]==')')--depth;
+                        ++cur;
+                    }
+                    if(depth==0) {
+                        const std::string fullCall=changed.substr(pos,cur-pos);
+                        const std::string argExpr=changed.substr(argStart,cur-argStart-1);
+                        const std::string nsPrefix=(pfx.rfind("std::filesystem::",0)==0)?"std::filesystem::path":"fs::path";
+                        const std::string repl=nsPrefix+"(std::u8string(reinterpret_cast<const char8_t*>(("+argExpr+").data()), ("+argExpr+").size()))";
+                        if(firstBefore.empty()){firstBefore=fullCall;firstAfter=repl;}
+                        changed.replace(pos,cur-pos,repl);
+                        pos+=repl.size();
+                        replacedAny=true;
+                    } else break;
+                }
+            }
+            if(replacedAny) {
+                auto candidate=graph;
+                candidate.replaceNodeContent(nodeId,changed);
+                proposals.push_back({std::move(candidate),"genomic-deprecated-api-"+std::to_string(++number),
+                    "Compiler deprecation diagnostic (-Werror=deprecated-declarations) activated C++20 char8_t/u8string modernization in node "+nodeId,
+                    {{ProjectTransformationKind::ReplaceExactToken,nodeId,"modernize-deprecated-cpp20-api",firstBefore,firstAfter}}});
+            }
         }
     }
     return proposals;
@@ -395,6 +481,61 @@ AutonomousProjectResult runAutonomousProjectRepair(const GenerativeProjectGraph&
                 if(result.cycles.size()>=config.maxCycles)break;
             }
         }
+        if(result.cycles.size()<config.maxCycles&&seed.mutationEnabled("modernize-deprecated-cpp20-api")&&
+           (compilerDiagnostic.find("u8path")!=std::string::npos||compilerDiagnostic.find("deprecated")!=std::string::npos)&&
+           failedTarget!=seed.targets().end()) {
+            std::size_t apiHypothesis=0;
+            for(const auto& nodeId:seed.resolvedTargetNodes(failedTarget->name)) {
+                const auto node=std::find_if(seed.nodes().begin(),seed.nodes().end(),[&](const auto& item){return item.id==nodeId;});
+                if(node==seed.nodes().end()||(node->kind!=ProjectNodeKind::Source&&node->kind!=ProjectNodeKind::ModuleImplementation&&node->kind!=ProjectNodeKind::Test))continue;
+                const auto source=seed.nodeContent(nodeId);
+                auto changed=source;
+                std::string firstBefore,firstAfter;
+                bool replacedAny=false;
+                for(const auto* prefix:{"std::filesystem::u8path(","fs::u8path("}) {
+                    const std::string pfx(prefix);
+                    std::size_t pos=0;
+                    while((pos=changed.find(pfx,pos))!=std::string::npos) {
+                        if(pos>0&&(std::isalnum(static_cast<unsigned char>(changed[pos-1]))||changed[pos-1]=='_')) {
+                            pos+=pfx.size();continue;
+                        }
+                        const std::size_t argStart=pos+pfx.size();
+                        std::size_t cur=argStart;
+                        int depth=1;
+                        while(cur<changed.size()&&depth>0) {
+                            if(changed[cur]=='(')++depth;
+                            else if(changed[cur]==')')--depth;
+                            ++cur;
+                        }
+                        if(depth==0) {
+                            const std::string fullCall=changed.substr(pos,cur-pos);
+                            const std::string argExpr=changed.substr(argStart,cur-argStart-1);
+                            const std::string nsPrefix=(pfx.rfind("std::filesystem::",0)==0)?"std::filesystem::path":"fs::path";
+                            const std::string repl=nsPrefix+"(std::u8string(reinterpret_cast<const char8_t*>(("+argExpr+").data()), ("+argExpr+").size()))";
+                            if(firstBefore.empty()){firstBefore=fullCall;firstAfter=repl;}
+                            changed.replace(pos,cur-pos,repl);
+                            pos+=repl.size();
+                            replacedAny=true;
+                        } else break;
+                    }
+                }
+                if(!replacedAny)continue;
+                auto candidate=seed;candidate.replaceNodeContent(nodeId,changed);
+                ProjectDevelopmentCycle cycle;cycle.number=result.cycles.size()+1;
+                cycle.hypothesis="genomic-deprecated-api-"+std::to_string(++apiHypothesis);
+                cycle.rationale="Compiler deprecation diagnostic activated C++20 char8_t/u8string modernization in node "+nodeId;
+                cycle.evidence=verifyGenerativeProject(candidate,contract,
+                    config.workspace/("cycle_"+std::to_string(cycle.number)),config.compiler,config.sandboxRunner);
+                result.cycles.push_back(std::move(cycle));
+                if(result.cycles.back().evidence.success) {
+                    result.success=true;result.selectedHypothesis=result.cycles.back().hypothesis;
+                    result.transformations.push_back(transformation(seed,candidate,ProjectTransformationKind::ReplaceExactToken,
+                        nodeId,"modernize-deprecated-cpp20-api",firstBefore,firstAfter,result.cycles.back().evidence));
+                    writeCampaign(result,config);return result;
+                }
+                if(result.cycles.size()>=config.maxCycles)break;
+            }
+        }
         writeCampaign(result,config);return result;
     }
     if(failure->kind!="behavior"){writeCampaign(result,config);return result;}
@@ -527,11 +668,13 @@ AutonomousProjectResult runCumulativeAutonomousProjectRepair(const GenerativePro
     auto currentEvidence=result.cycles.back().evidence;
     while(result.cycles.size()<config.maxCycles) {
         const auto* failure=lastFailure(currentEvidence);if(!failure)break;
-        auto proposals=compileMutationProposals(current,*failure);if(proposals.empty())break;
+        auto proposals=compileMutationProposals(current,*failure);
+        if(proposals.empty()){result.terminationReason="no_supported_repair_candidate";break;}
         const auto baseline=progressScore(currentEvidence);bool advanced=false;
         for(auto& proposal:proposals) {
             if(result.cycles.size()>=config.maxCycles)break;
-            const auto hash=proposal.graph.graphHash();if(!attempted.insert(hash).second)continue;
+            const auto hash=proposal.graph.graphHash();
+            if(!attempted.insert(hash).second){result.terminationReason="duplicate_strategy_suppressed";continue;}
             ProjectDevelopmentCycle cycle;cycle.number=result.cycles.size()+1;cycle.hypothesis=proposal.hypothesis;
             cycle.rationale=proposal.rationale;
             cycle.evidence=verifyGenerativeProject(proposal.graph,contract,
@@ -549,7 +692,7 @@ AutonomousProjectResult runCumulativeAutonomousProjectRepair(const GenerativePro
                 advanced=true;break;
             }
         }
-        if(!advanced)break;
+        if(!advanced){if(result.terminationReason.empty())result.terminationReason="candidates_exhausted_without_progress";break;}
     }
 
     const auto remaining=config.maxCycles-result.cycles.size();

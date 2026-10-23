@@ -1,0 +1,64 @@
+GDI_DEVELOPMENTAL_CURRICULUM_V1
+curriculum	ontogenetic_geometry_intelligence
+namespace	generated
+
+stage	stage1_neonatal_math	Neonatal
+project	stage1_math_primitives
+namespace	generated
+module	math
+function	square	long long	math
+parameter	square	long long	v
+max-depth	square	2
+sample	square	0	0
+sample	square	2	4
+sample	square	-3	9
+sample	square	5	25
+check	square	7	49
+check	square	-8	64
+entry-function	square
+end-stage
+
+stage	stage2_juvenile_types	Juvenile
+project	stage2_point_structure
+namespace	generated
+module	math
+module	geometry	math
+type	Point2D	geometry
+field	Point2D	long long	x
+field	Point2D	long long	y
+method	Point2D	manhattan	long long
+method-sample	Point2D	manhattan	0	0	0
+method-sample	Point2D	manhattan	3	4	7
+method-sample	Point2D	manhattan	2	5	7
+method-sample	Point2D	manhattan	6	8	14
+method-check	Point2D	manhattan	5	12	17
+method-check	Point2D	manhattan	10	3	13
+function	norm_sq	long long	geometry
+parameter	norm_sq	Point2D	p
+max-depth	norm_sq	2
+sample	norm_sq	Point2D{0,0}	0
+sample	norm_sq	Point2D{3,4}	25
+sample	norm_sq	Point2D{-2,5}	29
+sample	norm_sq	Point2D{6,8}	100
+check	norm_sq	Point2D{5,12}	169
+check	norm_sq	Point2D{-4,-3}	25
+entry-function	norm_sq
+end-stage
+
+stage	stage3_mature_system	Mature
+project	stage3_complete_geometry_system
+namespace	generated
+module	math
+module	geometry	math
+module	analytics	geometry	math
+function	point_energy	long long	analytics
+parameter	point_energy	Point2D	p
+max-depth	point_energy	2
+sample	point_energy	Point2D{0,0}	0
+sample	point_energy	Point2D{3,4}	32
+sample	point_energy	Point2D{2,5}	36
+sample	point_energy	Point2D{6,8}	114
+check	point_energy	Point2D{5,12}	186
+check	point_energy	Point2D{1,2}	8
+entry-function	point_energy
+end-stage

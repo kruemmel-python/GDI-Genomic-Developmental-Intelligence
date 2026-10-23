@@ -148,6 +148,74 @@ std::shared_ptr<AstNode> AstNode::makeIfStmt(
     return n;
 }
 
+std::shared_ptr<AstNode> AstNode::makeSwitchStmt(
+    std::shared_ptr<AstNode> condition,
+    std::vector<std::shared_ptr<AstNode>> cases,
+    std::shared_ptr<AstNode> initStmt
+) {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::SwitchStmt;
+    n->boolVal = (initStmt != nullptr);
+    if (initStmt) {
+        n->children.push_back(initStmt);
+    }
+    n->children.push_back(condition);
+    for (auto& c : cases) {
+        n->children.push_back(std::move(c));
+    }
+    return n;
+}
+
+std::shared_ptr<AstNode> AstNode::makeCaseStmt(
+    std::shared_ptr<AstNode> caseValue,
+    std::vector<std::shared_ptr<AstNode>> statements,
+    bool hasFallthroughAttr
+) {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::CaseStmt;
+    n->boolVal = hasFallthroughAttr;
+    n->children.push_back(caseValue);
+    for (auto& s : statements) {
+        n->children.push_back(std::move(s));
+    }
+    return n;
+}
+
+std::shared_ptr<AstNode> AstNode::makeDefaultStmt(
+    std::vector<std::shared_ptr<AstNode>> statements
+) {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::DefaultStmt;
+    n->children = std::move(statements);
+    return n;
+}
+
+std::shared_ptr<AstNode> AstNode::makeTernaryExpr(
+    std::shared_ptr<AstNode> condition,
+    std::shared_ptr<AstNode> trueExpr,
+    std::shared_ptr<AstNode> falseExpr
+) {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::TernaryExpr;
+    n->op = "?:";
+    n->children.push_back(condition);
+    n->children.push_back(trueExpr);
+    n->children.push_back(falseExpr);
+    return n;
+}
+
+std::shared_ptr<AstNode> AstNode::makeBreakStmt() {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::BreakStmt;
+    return n;
+}
+
+std::shared_ptr<AstNode> AstNode::makeContinueStmt() {
+    auto n = std::make_shared<AstNode>();
+    n->kind = AstNodeKind::ContinueStmt;
+    return n;
+}
+
 std::shared_ptr<AstNode> AstNode::makeForStmt(
     std::shared_ptr<AstNode> init,
     std::shared_ptr<AstNode> condition,
@@ -255,6 +323,9 @@ std::string Cpp20Printer::print(const AstNode& node, int indent) {
                 if (child) {
                     ss << print(*child, indent + 1);
                     if (child->kind != AstNodeKind::IfStmt &&
+                        child->kind != AstNodeKind::SwitchStmt &&
+                        child->kind != AstNodeKind::CaseStmt &&
+                        child->kind != AstNodeKind::DefaultStmt &&
                         child->kind != AstNodeKind::ForStmt &&
                         child->kind != AstNodeKind::WhileStmt &&
                         child->kind != AstNodeKind::CompoundStmt) {
@@ -264,6 +335,101 @@ std::string Cpp20Printer::print(const AstNode& node, int indent) {
                 }
             }
             ss << ind << "}";
+            break;
+        }
+        case AstNodeKind::SwitchStmt: {
+            ss << ind << "switch (";
+            size_t condIdx = node.boolVal ? 1 : 0;
+            if (node.boolVal && !node.children.empty() && node.children[0]) {
+                ss << print(*node.children[0], 0) << "; ";
+            }
+            if (condIdx < node.children.size() && node.children[condIdx]) {
+                ss << print(*node.children[condIdx], 0);
+            }
+            ss << ") {\n";
+            for (size_t i = condIdx + 1; i < node.children.size(); ++i) {
+                if (node.children[i]) {
+                    ss << print(*node.children[i], indent + 1) << "\n";
+                }
+            }
+            ss << ind << "}";
+            break;
+        }
+        case AstNodeKind::CaseStmt: {
+            ss << ind << "case ";
+            if (!node.children.empty() && node.children[0]) {
+                ss << print(*node.children[0], 0);
+            }
+            ss << ":\n";
+            for (size_t i = 1; i < node.children.size(); ++i) {
+                const auto& stmt = node.children[i];
+                if (!stmt) continue;
+                ss << print(*stmt, indent + 1);
+                if (stmt->kind != AstNodeKind::CompoundStmt &&
+                    stmt->kind != AstNodeKind::IfStmt &&
+                    stmt->kind != AstNodeKind::SwitchStmt &&
+                    stmt->kind != AstNodeKind::ForStmt &&
+                    stmt->kind != AstNodeKind::WhileStmt) {
+                    ss << ";";
+                }
+                if (i + 1 < node.children.size() || node.boolVal) ss << "\n";
+            }
+            if (node.boolVal) {
+                ss << std::string((indent + 1) * 4, ' ') << "[[fallthrough]];";
+            }
+            break;
+        }
+        case AstNodeKind::DefaultStmt: {
+            ss << ind << "default:\n";
+            for (size_t i = 0; i < node.children.size(); ++i) {
+                const auto& stmt = node.children[i];
+                if (!stmt) continue;
+                ss << print(*stmt, indent + 1);
+                if (stmt->kind != AstNodeKind::CompoundStmt &&
+                    stmt->kind != AstNodeKind::IfStmt &&
+                    stmt->kind != AstNodeKind::SwitchStmt &&
+                    stmt->kind != AstNodeKind::ForStmt &&
+                    stmt->kind != AstNodeKind::WhileStmt) {
+                    ss << ";";
+                }
+                if (i + 1 < node.children.size()) ss << "\n";
+            }
+            break;
+        }
+        case AstNodeKind::BreakStmt: {
+            ss << ind << "break";
+            break;
+        }
+        case AstNodeKind::ContinueStmt: {
+            ss << ind << "continue";
+            break;
+        }
+        case AstNodeKind::TernaryExpr: {
+            if (node.children.size() >= 3 && node.children[0] && node.children[1] && node.children[2]) {
+                ss << "(" << print(*node.children[0], 0) << " ? "
+                   << print(*node.children[1], 0) << " : "
+                   << print(*node.children[2], 0) << ")";
+            }
+            break;
+        }
+        case AstNodeKind::MemberAccessExpr: {
+            if (!node.children.empty() && node.children[0]) {
+                ss << print(*node.children[0], 0) << node.op << node.name;
+            }
+            break;
+        }
+        case AstNodeKind::SubscriptExpr: {
+            if (node.children.size() >= 2 && node.children[0] && node.children[1]) {
+                ss << print(*node.children[0], 0) << "[" << print(*node.children[1], 0) << "]";
+            }
+            break;
+        }
+        case AstNodeKind::CastExpr: {
+            ss << node.name << "<" << (node.evaluatedType ? node.evaluatedType->toString() : "auto") << ">(";
+            if (!node.children.empty() && node.children[0]) {
+                ss << print(*node.children[0], 0);
+            }
+            ss << ")";
             break;
         }
         case AstNodeKind::IfStmt: {

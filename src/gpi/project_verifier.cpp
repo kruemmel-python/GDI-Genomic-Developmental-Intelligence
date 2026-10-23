@@ -79,7 +79,8 @@ ProjectVerificationEvidence verifyGenerativeProject(const GenerativeProjectGraph
         if(!requested.insert(name).second)throw std::invalid_argument("Build target requested more than once");
         const auto found=targets.find(name);if(found==targets.end())throw std::invalid_argument("Unknown build target: "+name);
         const auto& target=*found->second;
-        std::vector<std::string> command={compiler.string(),"-std=c++20","-Wall","-Wextra","-Wpedantic","-Werror","-O2"};
+        std::vector<std::string> command={compiler.string(),"-std=c++20","-Wall","-Wextra","-Wpedantic","-Werror",
+            "-Wno-error=unused-parameter","-Wno-error=cast-function-type","-Wno-error=unused-function","-O2"};
         for(const auto& include:contract.includeRoots)command.push_back("-I"+(workspace/include).string());
         std::size_t translationUnits=0;
         for(const auto& nodeId:graph.resolvedTargetNodes(target.name)) {

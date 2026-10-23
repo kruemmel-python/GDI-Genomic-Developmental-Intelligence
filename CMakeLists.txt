@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.2.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.4.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -55,6 +55,10 @@ set(GENOMIC_SOURCES
     src/gpi/project_manifest.cpp
     src/gpi/project_blueprint.cpp
     src/gpi/goal_architect.cpp
+    src/gpi/behavioral_induction.cpp
+    src/gpi/developmental_intelligence.cpp
+    src/gpi/foreign_project_intelligence.cpp
+    src/gpi/filesystem_safety.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -115,15 +119,27 @@ target_link_libraries(gpi_develop PRIVATE genomic_core)
 add_executable(gpi_synthesize apps/gpi_synthesize.cpp)
 target_link_libraries(gpi_synthesize PRIVATE genomic_core)
 
+add_executable(gdi_create apps/gdi_create.cpp)
+target_link_libraries(gdi_create PRIVATE genomic_core)
+
+add_executable(gdi_intelligence apps/gdi_intelligence.cpp)
+target_link_libraries(gdi_intelligence PRIVATE genomic_core)
+
 add_executable(gpi_architect apps/gpi_architect.cpp)
 target_link_libraries(gpi_architect PRIVATE genomic_core)
 
 if(WIN32)
     add_executable(gpi_gui WIN32 apps/gpi_gui.cpp)
     target_link_libraries(gpi_gui PRIVATE genomic_core comctl32 comdlg32 shell32 ole32)
+    target_compile_definitions(gpi_gui PRIVATE GDI_ENGINE_VERSION="${PROJECT_VERSION}")
     if(MINGW)
         target_link_options(gpi_gui PRIVATE -municode)
     endif()
+    # Preserve the existing gpi_gui.exe entry point and provide the new GDI name (tolerate if gdi_gui.exe is currently open).
+    add_custom_command(TARGET gpi_gui POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -D_SRC=$<TARGET_FILE:gpi_gui> -D_DST=$<TARGET_FILE_DIR:gpi_gui>/gdi_gui.exe
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/copy_gui_optional.cmake"
+        VERBATIM)
 endif()
 
 add_executable(gpi_sandbox apps/gpi_sandbox.cpp)
@@ -134,10 +150,27 @@ endif()
 add_executable(test_gpi_v03 tests/test_gpi_v03.cpp)
 target_link_libraries(test_gpi_v03 PRIVATE genomic_core)
 
+add_executable(test_behavioral_induction tests/test_behavioral_induction.cpp)
+target_link_libraries(test_behavioral_induction PRIVATE genomic_core)
+
 add_executable(test_generative_project tests/test_generative_project.cpp)
 target_link_libraries(test_generative_project PRIVATE genomic_core)
 
 enable_testing()
+if(WIN32)
+    add_test(NAME GDIBehavioralInductionEndToEnd
+        COMMAND test_behavioral_induction "${CMAKE_CXX_COMPILER}"
+            "${CMAKE_CURRENT_BINARY_DIR}/gdi_behavioral_e2e"
+            "${CMAKE_CURRENT_SOURCE_DIR}/examples" "$<TARGET_FILE:gpi_sandbox>")
+else()
+    # The generated source comes only from a bounded genome-authorized expression grammar.
+    # No arbitrary prompt source is executed by this regression test.
+    add_test(NAME GDIBehavioralInductionEndToEnd
+        COMMAND test_behavioral_induction "${CMAKE_CXX_COMPILER}"
+            "${CMAKE_CURRENT_BINARY_DIR}/gdi_behavioral_e2e"
+            "${CMAKE_CURRENT_SOURCE_DIR}/examples")
+endif()
+
 add_test(NAME GPIv03UnitTests COMMAND test_gpi_v03)
 
 add_test(NAME GPIProjectEndToEnd

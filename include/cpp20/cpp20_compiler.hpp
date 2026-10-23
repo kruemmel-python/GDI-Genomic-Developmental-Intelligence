@@ -28,6 +28,8 @@ private:
     uint32_t nextLabelId_{1};
 
     std::unordered_map<std::string, IrRegister> varToRegMap_;
+    std::vector<std::string> breakTargetStack_;
+    std::vector<std::string> continueTargetStack_;
 
     IrRegister allocateRegister();
     std::string generateLabel(const std::string& prefix = "bb");

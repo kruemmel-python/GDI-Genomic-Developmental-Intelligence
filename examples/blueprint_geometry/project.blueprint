@@ -1,0 +1,21 @@
+GPI_PROJECT_BLUEPRINT_V2
+project	blueprint_geometry
+namespace	generated
+module	math
+module	geometry	math
+concept	IntegralScalar	T	std::integral<T>	math
+type	Point2D	geometry
+field	Point2D	long long	x
+field	Point2D	long long	y
+method	Point2D	manhattan	long long	(this->x < 0 ? -this->x : this->x) + (this->y < 0 ? -this->y : this->y)
+function	square	T	v * v	math	T	IntegralScalar
+parameter	square	T	v
+function	norm_sq	long long	square(p.x) + square(p.y)	geometry
+parameter	norm_sq	Point2D	p
+entry	long long	norm_sq(Point2D{3, 4}) + Point2D{-3, 4}.manhattan()
+test	square_test	square(6) == 36
+test	manhattan_test	Point2D{-3, 4}.manhattan() == 7
+test	norm_test	norm_sq(Point2D{3, 4}) == 25
+expected-output-literal	32
+timeout-seconds	20
+require-sandbox	true

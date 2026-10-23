@@ -23,6 +23,8 @@ static TypeKind stringToTypeKind(const std::string& s) {
     if (s == "uint64_t" || s == "unsigned long long") return TypeKind::UInt64;
     if (s == "float") return TypeKind::Float32;
     if (s == "double") return TypeKind::Float64;
+    if (s == "nullptr_t") return TypeKind::Nullptr;
+    if (s == "enum") return TypeKind::Enum;
     if (s == "pointer") return TypeKind::Pointer;
     if (s == "lvalue_ref") return TypeKind::LValueReference;
     if (s == "rvalue_ref") return TypeKind::RValueReference;
@@ -52,6 +54,8 @@ static std::string typeKindToString(TypeKind k) {
         case TypeKind::UInt64: return "uint64_t";
         case TypeKind::Float32: return "float";
         case TypeKind::Float64: return "double";
+        case TypeKind::Nullptr: return "nullptr_t";
+        case TypeKind::Enum: return "enum";
         case TypeKind::Pointer: return "pointer";
         case TypeKind::LValueReference: return "lvalue_ref";
         case TypeKind::RValueReference: return "rvalue_ref";
@@ -555,7 +559,12 @@ bool GenomicRuleEngine::canConvert(TypeKind from, TypeKind to) const {
 }
 
 bool GenomicRuleEngine::checkConceptSatisfaction(const std::string& conceptName, TypeKind targetType) const {
-    auto it = constraintRules_.find(conceptName);
+    std::string clean = conceptName;
+    if (clean.rfind("std::", 0) == 0) clean = clean.substr(5);
+    size_t lt = clean.find('<');
+    if (lt != std::string::npos) clean = clean.substr(0, lt);
+
+    auto it = constraintRules_.find(clean);
     if (it == constraintRules_.end()) {
         return false;
     }
@@ -566,21 +575,30 @@ bool GenomicRuleEngine::checkConceptSatisfaction(const std::string& conceptName,
 }
 
 bool GenomicRuleEngine::subsumes(const std::string& moreConstrained, const std::string& lessConstrained) const {
-    if (moreConstrained == lessConstrained) return true;
+    std::string cleanMore = moreConstrained;
+    std::string cleanLess = lessConstrained;
+    if (cleanMore.rfind("std::", 0) == 0) cleanMore = cleanMore.substr(5);
+    if (cleanLess.rfind("std::", 0) == 0) cleanLess = cleanLess.substr(5);
+    if (auto lt = cleanMore.find('<'); lt != std::string::npos) cleanMore = cleanMore.substr(0, lt);
+    if (auto lt = cleanLess.find('<'); lt != std::string::npos) cleanLess = cleanLess.substr(0, lt);
 
-    auto it = constraintRules_.find(moreConstrained);
+    if (cleanMore == cleanLess) return true;
+    if (!cleanMore.empty() && (cleanLess.empty() || cleanLess == "Any")) return true;
+
+    auto it = constraintRules_.find(cleanMore);
     if (it == constraintRules_.end()) {
         // Built-in concept subsumption hierarchy
-        if (moreConstrained == "signed_integral" && lessConstrained == "integral") return true;
-        if (moreConstrained == "unsigned_integral" && lessConstrained == "integral") return true;
-        if (moreConstrained == "arithmetic" && (lessConstrained == "integral" || lessConstrained == "floating_point")) return true;
-        if (moreConstrained == "SignedIntegral" && lessConstrained == "Integral") return true;
-        if (moreConstrained == "Integral" && lessConstrained == "Any") return true;
+        if (cleanMore == "signed_integral" && cleanLess == "integral") return true;
+        if (cleanMore == "unsigned_integral" && cleanLess == "integral") return true;
+        if (cleanMore == "arithmetic" && (cleanLess == "integral" || cleanLess == "floating_point")) return true;
+        if (cleanMore == "SignedIntegral" && cleanLess == "Integral") return true;
+        if (cleanMore == "UnsignedIntegral" && cleanLess == "Integral") return true;
+        if (cleanMore == "Integral" && cleanLess == "Any") return true;
         return false;
     }
 
     for (const auto& sub : it->second.subsumedConcepts) {
-        if (sub == lessConstrained || subsumes(sub, lessConstrained)) {
+        if (sub == cleanLess || subsumes(sub, cleanLess)) {
             return true;
         }
     }

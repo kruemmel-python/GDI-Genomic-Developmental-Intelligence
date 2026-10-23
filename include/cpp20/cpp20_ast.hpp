@@ -15,10 +15,16 @@ enum class AstNodeKind : uint16_t {
     FunctionDecl,
     VariableDecl,
     RecordDecl,
+    EnumDecl,
     TemplateDecl,
     ConceptDecl,
+    StaticAssertDecl,
+    UsingDecl,
     CompoundStmt,
     IfStmt,
+    SwitchStmt,
+    CaseStmt,
+    DefaultStmt,
     ForStmt,
     WhileStmt,
     DoWhileStmt,
@@ -29,11 +35,15 @@ enum class AstNodeKind : uint16_t {
     CallExpr,
     BinaryExpr,
     UnaryExpr,
+    TernaryExpr,
     LiteralExpr,
     IdentifierExpr,
     MemberAccessExpr,
+    SubscriptExpr,
     CastExpr,
     LambdaExpr,
+    RequiresExpr,
+    FoldExpr,
     CoroutineExpr,
     EmitMoleculeExpr
 };
@@ -110,6 +120,26 @@ struct AstNode {
         std::shared_ptr<AstNode> elseBranch = nullptr,
         bool isConstexpr = false
     );
+    static std::shared_ptr<AstNode> makeSwitchStmt(
+        std::shared_ptr<AstNode> condition,
+        std::vector<std::shared_ptr<AstNode>> cases,
+        std::shared_ptr<AstNode> initStmt = nullptr
+    );
+    static std::shared_ptr<AstNode> makeCaseStmt(
+        std::shared_ptr<AstNode> caseValue,
+        std::vector<std::shared_ptr<AstNode>> statements,
+        bool hasFallthroughAttr = false
+    );
+    static std::shared_ptr<AstNode> makeDefaultStmt(
+        std::vector<std::shared_ptr<AstNode>> statements
+    );
+    static std::shared_ptr<AstNode> makeTernaryExpr(
+        std::shared_ptr<AstNode> condition,
+        std::shared_ptr<AstNode> trueExpr,
+        std::shared_ptr<AstNode> falseExpr
+    );
+    static std::shared_ptr<AstNode> makeBreakStmt();
+    static std::shared_ptr<AstNode> makeContinueStmt();
     static std::shared_ptr<AstNode> makeForStmt(
         std::shared_ptr<AstNode> init,
         std::shared_ptr<AstNode> condition,

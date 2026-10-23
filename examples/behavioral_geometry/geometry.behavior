@@ -1,0 +1,27 @@
+GDI_BEHAVIORAL_GOAL_V2
+project	developed_geometry
+namespace	generated
+module	math
+module	geometry	math
+type	Point2D	geometry
+field	Point2D	long long	x
+field	Point2D	long long	y
+function	square	long long	math
+parameter	square	long long	v
+max-depth	square	2
+sample	square	0	0
+sample	square	2	4
+sample	square	-3	9
+sample	square	5	25
+check	square	7	49
+check	square	-8	64
+function	norm_sq	long long	geometry
+parameter	norm_sq	Point2D	p
+max-depth	norm_sq	2
+sample	norm_sq	Point2D{0,0}	0
+sample	norm_sq	Point2D{3,4}	25
+sample	norm_sq	Point2D{-2,5}	29
+sample	norm_sq	Point2D{6,8}	100
+check	norm_sq	Point2D{5,12}	169
+check	norm_sq	Point2D{-4,-3}	25
+entry-function	norm_sq

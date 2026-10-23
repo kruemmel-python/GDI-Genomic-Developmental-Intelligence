@@ -73,7 +73,7 @@ int main(int argc,char** argv) {
         if(!plan.supported || !plan.contract.accepted){std::cout<<"RESULT=BLOCKED\n";return 3;}
         const auto system=genomic::GenomeBootstrap::buildCompleteSystem();
         genomic::gpi::ResearchConfig config;config.workspace=workspace;config.compiler=compiler;
-        config.memory=memory.empty()?std::filesystem::path(workspace).parent_path()/"integrated.memory":memory;
+        config.memory=memory.empty()?std::filesystem::path(workspace).parent_path()/"integrated.memory":std::filesystem::path(memory);
         config.genome=system.strand.get();config.maxCycles=cycles;
         if(architectureName=="compare") {
             const auto results=genomic::gpi::runArchitectureComparison(plan,config,autonomousCycles);

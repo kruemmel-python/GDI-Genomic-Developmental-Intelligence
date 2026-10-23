@@ -10,6 +10,32 @@
 
 namespace genomic::gpi {
 
+enum class CompilerDiagnosticClass {
+    Syntax,
+    MissingDeclaration,
+    TypeMismatch,
+    ConstraintFailure,
+    DeprecatedApi,
+    UndefinedReference,
+    DuplicateDefinition,
+    Warning,
+    Unknown
+};
+
+struct CompilerDiagnostic {
+    std::filesystem::path file;
+    std::size_t line{0};
+    std::size_t column{0};
+    std::string severity;
+    CompilerDiagnosticClass classification{CompilerDiagnosticClass::Unknown};
+    std::string message;
+    std::string raw;
+};
+
+// Parses GCC/Clang-style location diagnostics and linker diagnostics into a
+// stable model used by repair candidate generation and campaign evidence.
+std::vector<CompilerDiagnostic> parseCompilerDiagnostics(const std::string& text);
+
 struct ProjectHypothesis {
     std::string id;
     std::string rationale;
@@ -21,6 +47,8 @@ struct ProjectDevelopmentCycle {
     std::string hypothesis;
     std::string rationale;
     ProjectVerificationEvidence evidence;
+    std::vector<CompilerDiagnostic> diagnostics;
+    bool duplicateStrategySuppressed{false};
 };
 
 struct AutonomousProjectConfig {
@@ -42,6 +70,7 @@ struct AutonomousProjectResult {
     bool experienceTransferred{false};
     uint64_t experienceOriginGraphHash{0};
     std::filesystem::path report;
+    std::string terminationReason;
 };
 
 AutonomousProjectResult runEvidenceGuidedProjectDevelopment(

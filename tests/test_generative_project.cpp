@@ -111,6 +111,41 @@ int main(int argc,char** argv) {
         const auto multiEvidence=verifyGenerativeProject(multi.project.graph,multi.project.contract,multiOutput,
             compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
         if(!multiEvidence.success||multiEvidence.checks.size()!=5)return 30;
+
+        // V2 Typed Architecture Goal with custom structs, methods, concepts, templates, and multi-module targets
+        const auto geomGoalPath=blueprintInput/"geometry.goal";
+        {std::ofstream file(geomGoalPath,std::ios::binary);file<<
+            "GPI_TYPED_ARCHITECTURE_GOAL_V2\nproject\tarchitected_geometry\nnamespace\tgenerated\n"
+            "module\tmath\nmodule\tgeometry\tmath\n"
+            "concept\tIntegralScalar\tT\tstd::integral<T>\tmath\n"
+            "type\tPoint2D\tgeometry\nfield\tPoint2D\tlong long\tx\nfield\tPoint2D\tlong long\ty\n"
+            "method\tPoint2D\tmanhattan\tlong long\n"
+            "method-operation\tPoint2D\tmanhattan\tax\tabs\tx\n"
+            "method-operation\tPoint2D\tmanhattan\tay\tabs\ty\n"
+            "method-operation\tPoint2D\tmanhattan\ttotal\tadd\tax\tay\n"
+            "method-return\tPoint2D\tmanhattan\ttotal\n"
+            "function\tsquare\tT\tmath\tT\tIntegralScalar\nparameter\tsquare\tT\tv\n"
+            "operation\tsquare\tprod\tmultiply\tv\tv\nreturn\tsquare\tprod\n"
+            "function\tmake_point\tPoint2D\tgeometry\nparameter\tmake_point\tlong long\tpx\nparameter\tmake_point\tlong long\tpy\n"
+            "operation\tmake_point\tpt\tconstruct:Point2D\tpx\tpy\nreturn\tmake_point\tpt\n"
+            "function\tpoint_energy\tlong long\tgeometry\nparameter\tpoint_energy\tPoint2D\tp\n"
+            "operation\tpoint_energy\tpx\tfield:x\tp\noperation\tpoint_energy\tpy\tfield:y\tp\n"
+            "operation\tpoint_energy\tsx\tcall:square\tpx\noperation\tpoint_energy\tsy\tcall:square\tpy\n"
+            "operation\tpoint_energy\tsum\tadd\tsx\tsy\noperation\tpoint_energy\tman\tmethod:manhattan\tp\n"
+            "operation\tpoint_energy\tres\tadd\tsum\tman\nreturn\tpoint_energy\tres\n"
+            "entry\tpoint_energy\t#32\tPoint2D{#3,#4}\n"
+            "case\tsq_five\tsquare\t#25\t#5\ncase\tmk_pt\tmake_point\tPoint2D{#3,#4}\t#3\t#4\n"
+            "case\tenergy_3_4\tpoint_energy\t#32\tPoint2D{#3,#4}\n"
+            "timeout-seconds\t20\nrequire-sandbox\t"<<(argc==4?"true":"false")<<"\n";}
+        auto geomArch=architectTypedGoal(loadTypedArchitectureGoal(geomGoalPath),Cpp20SourceGenome::fromGenome(*system.strand));
+        if(geomArch.blueprint.modules.size()!=2||geomArch.blueprint.types.size()!=1||
+           geomArch.blueprint.concepts.size()!=1||geomArch.blueprint.functions.size()!=3||
+           geomArch.project.graph.targets().size()!=5)return 32;
+        const auto geomOutput=std::filesystem::path(root.string()+"_architecture_geometry");
+        std::filesystem::remove_all(geomOutput,error);
+        const auto geomEvidence=verifyGenerativeProject(geomArch.project.graph,geomArch.project.contract,geomOutput,
+            compiler,argc==4?std::filesystem::path(argv[3]):std::filesystem::path{});
+        if(!geomEvidence.success||geomEvidence.checks.size()!=7)return 33;
         auto cyclicGoal=loadTypedArchitectureGoal(goalPath);
         cyclicGoal.functions.front().operations.front().operands.front()="result";
         bool cycleRejected=false;try {static_cast<void>(architectTypedGoal(cyclicGoal,Cpp20SourceGenome::fromGenome(*system.strand)));}

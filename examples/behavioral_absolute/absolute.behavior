@@ -1,0 +1,14 @@
+GDI_BEHAVIORAL_GOAL_V1
+project	developed_absolute
+namespace	generated
+function	absolute
+parameter	x
+max-depth	3
+sample	-5	5
+sample	-2	2
+sample	0	0
+sample	1	1
+sample	3	3
+sample	-7	7
+check	-11	11
+check	8	8

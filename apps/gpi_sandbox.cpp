@@ -86,6 +86,9 @@ std::filesystem::path appContainerFolder(PSID sid) {
     return std::filesystem::path(localAppData)/L"Packages"/L"GenomicGPIResearchSandbox"/L"LocalState";
 }
 void grantSandboxStorage(const std::filesystem::path& path,PSID sid) {
+    const auto marker=path/L".acl_granted";
+    std::error_code ec;
+    if(std::filesystem::is_regular_file(marker,ec))return;
     PACL oldAcl=nullptr;PSECURITY_DESCRIPTOR descriptor=nullptr;
     if(GetNamedSecurityInfoW(path.wstring().c_str(),SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,
         nullptr,nullptr,&oldAcl,nullptr,&descriptor)!=ERROR_SUCCESS) throw std::runtime_error("Cannot read sandbox storage ACL");
@@ -98,6 +101,8 @@ void grantSandboxStorage(const std::filesystem::path& path,PSID sid) {
     LocalMemory aclOwner{newAcl};
     if(SetNamedSecurityInfoW(const_cast<LPWSTR>(path.wstring().c_str()),SE_FILE_OBJECT,DACL_SECURITY_INFORMATION,
         nullptr,nullptr,newAcl,nullptr)!=ERROR_SUCCESS) throw std::runtime_error("Cannot grant sandbox storage access");
+    HANDLE m=CreateFileW(marker.wstring().c_str(),GENERIC_WRITE,FILE_SHARE_READ,nullptr,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+    if(m!=INVALID_HANDLE_VALUE)CloseHandle(m);
 }
 }
 #endif
@@ -128,14 +133,31 @@ int main(int argc,char** argv) {
         const auto containerRoot=appContainerFolder(static_cast<PSID>(sidOwner.value));
         std::filesystem::create_directories(containerRoot);
         grantSandboxStorage(containerRoot,static_cast<PSID>(sidOwner.value));
+        const auto sharedLibs=containerRoot/L"shared_libs";
+        std::filesystem::create_directories(sharedLibs);
+        for(const auto& entry:std::filesystem::directory_iterator(root)) {
+            if(entry.is_regular_file() && _wcsicmp(entry.path().extension().c_str(),L".dll")==0) {
+                const auto dstDll=sharedLibs/entry.path().filename();
+                std::error_code ec;
+                if(!std::filesystem::is_regular_file(dstDll,ec) ||
+                   std::filesystem::file_size(dstDll,ec)!=std::filesystem::file_size(entry.path(),ec)) {
+                    std::filesystem::copy_file(entry.path(),dstDll,std::filesystem::copy_options::overwrite_existing,ec);
+                }
+            }
+        }
         const auto runRoot=containerRoot/(L"run_"+std::to_wstring(GetCurrentProcessId()));
         std::filesystem::create_directories(runRoot);
         struct RunCleanup { std::filesystem::path path; ~RunCleanup(){std::error_code ec;std::filesystem::remove_all(path,ec);} } runCleanup{runRoot};
         const auto sandboxExecutable=runRoot/executable.filename();
         std::filesystem::copy_file(executable,sandboxExecutable,std::filesystem::copy_options::overwrite_existing);
-        for(const auto& entry:std::filesystem::directory_iterator(root))
-            if(entry.is_regular_file() && _wcsicmp(entry.path().extension().c_str(),L".dll")==0)
-                std::filesystem::copy_file(entry.path(),runRoot/entry.path().filename(),std::filesystem::copy_options::overwrite_existing);
+        {
+            const DWORD pathLen=GetEnvironmentVariableW(L"PATH",nullptr,0);
+            std::wstring curPath(pathLen>0?pathLen:1,L'\0');
+            if(pathLen>0)GetEnvironmentVariableW(L"PATH",curPath.data(),pathLen);
+            if(!curPath.empty()&&curPath.back()==L'\0')curPath.pop_back();
+            const std::wstring newPath=sharedLibs.wstring()+L";"+curPath;
+            SetEnvironmentVariableW(L"PATH",newPath.c_str());
+        }
 
         SECURITY_CAPABILITIES capabilities{};
         capabilities.AppContainerSid=static_cast<PSID>(sidOwner.value);

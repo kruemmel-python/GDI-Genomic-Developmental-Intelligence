@@ -1,0 +1,40 @@
+GPI_TYPED_ARCHITECTURE_GOAL_V2
+project	architected_geometry
+namespace	generated
+module	math
+module	geometry	math
+concept	IntegralScalar	T	std::integral<T>	math
+type	Point2D	geometry
+field	Point2D	long long	x
+field	Point2D	long long	y
+method	Point2D	manhattan	long long
+method-operation	Point2D	manhattan	ax	abs	x
+method-operation	Point2D	manhattan	ay	abs	y
+method-operation	Point2D	manhattan	total	add	ax	ay
+method-return	Point2D	manhattan	total
+function	square	T	math	T	IntegralScalar
+parameter	square	T	v
+operation	square	prod	multiply	v	v
+return	square	prod
+function	make_point	Point2D	geometry
+parameter	make_point	long long	px
+parameter	make_point	long long	py
+operation	make_point	pt	construct:Point2D	px	py
+return	make_point	pt
+function	point_energy	long long	geometry
+parameter	point_energy	Point2D	p
+operation	point_energy	px	field:x	p
+operation	point_energy	py	field:y	p
+operation	point_energy	sx	call:square	px
+operation	point_energy	sy	call:square	py
+operation	point_energy	sum	add	sx	sy
+operation	point_energy	man	method:manhattan	p
+operation	point_energy	res	add	sum	man
+return	point_energy	res
+entry	point_energy	#32	Point2D{#3,#4}
+case	sq_five	square	#25	#5
+case	mk_pt	make_point	Point2D{#3,#4}	#3	#4
+case	energy_origin	point_energy	#0	Point2D{#0,#0}
+case	energy_3_4	point_energy	#32	Point2D{#3,#4}
+timeout-seconds	20
+require-sandbox	true
