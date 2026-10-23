@@ -16,6 +16,7 @@
 #include "gpi/development_strategy.hpp"
 #include "gpi/autonomous_software_engineering.hpp"
 #include "gpi/autonomous_behavioral_evolution.hpp"
+#include "gpi/autonomous_semantic_integration.hpp"
 #include "gpi/goal_architect.hpp"
 #include "gpi/project_blueprint.hpp"
 #include "gpi/project_manifest.hpp"
@@ -1224,7 +1225,7 @@ int selfTest() {
         }
     }
     if(foreignEx.empty()) foreignEx=examplePath(GuiMode::ForeignProject);
-    bool foreignOk=true,buildContractOk=true,strategyOk=true,r17Ok=true,r18Ok=true;
+    bool foreignOk=true,buildContractOk=true,strategyOk=true,r17Ok=true,r18Ok=true,r19Ok=true;
     if(!foreignEx.empty()&&std::filesystem::is_directory(foreignEx)) {
         const auto fpAnalysis=genomic::gpi::analyzeForeignCpp20Project(foreignEx);
         // A successful analysis of a healthy project may legitimately produce
@@ -1253,6 +1254,18 @@ int selfTest() {
             const auto r18Plan=genomic::gpi::synthesizeBehavioralIntegration(genomic::gpi::analyzeBehavioralProgram(r18Example),r18Contract);
             r18Ok=r18Contract.status==genomic::gpi::BehavioralFactStatus::Verified&&r18Plan.executable;
         }
+        std::filesystem::path r19Example;
+        for(const auto& root:{bin,bin.parent_path(),bin.parent_path().parent_path()}) {
+            const auto candidate=root/L"examples"/L"r19_csv_semantic";
+            if(std::filesystem::is_directory(candidate)){r19Example=candidate;break;}
+        }
+        if(!r19Example.empty()) {
+            const auto r19Contract=genomic::gpi::interpretSemanticIntegrationRequirement("For CSV records skip invalid rows and write an error report.");
+            const auto r19Model=genomic::gpi::buildSemanticProgramModel(r19Example,genomic::gpi::discoverBuildContract(r19Example));
+            const auto r19Delta=genomic::gpi::analyzeBehavioralDelta(r19Contract,r19Model);
+            const auto r19Plan=genomic::gpi::discoverSemanticIntegrationPoint(r19Contract,r19Model,r19Delta,genomic::gpi::discoverBuildContract(r19Example));
+            r19Ok=r19Plan.executable&&!r19Plan.selected.node.symbol.empty();
+        }
     }
     const bool passed=accepted.supported&&accepted.contract.accepted&&!accepted.graph.empty()&&
            (!rejected.supported||!rejected.contract.accepted)&&
@@ -1261,7 +1274,7 @@ int selfTest() {
            example.functions.size()>=2&&!example.types.empty()&&!example.modules.empty()&&
            archGoal.functions.size()>=2&&!archGoal.types.empty()&&!archGoal.modules.empty()&&
            bpSpec.functions.size()>=2&&!bpSpec.types.empty()&&!bpSpec.modules.empty()&&
-           foreignOk&&buildContractOk&&strategyOk&&r17Ok&&r18Ok;
+           foreignOk&&buildContractOk&&strategyOk&&r17Ok&&r18Ok&&r19Ok;
     const auto executable=std::filesystem::absolute(executablePath());
     std::ofstream evidence(executableDirectory()/"gdi_gui_self_test.json",std::ios::binary|std::ios::trunc);
     evidence<<"{\n  \"format\": \"gdi-gui-self-test-v1\",\n"
@@ -1273,7 +1286,8 @@ int selfTest() {
             <<"  \"build_contract_integration\": "<<(buildContractOk?"true":"false")<<",\n"
             <<"  \"strategy_planner_integration\": "<<(strategyOk?"true":"false")<<",\n"
             <<"  \"r17_requirement_pipeline\": "<<(r17Ok?"true":"false")<<",\n"
-            <<"  \"r18_behavioral_pipeline\": "<<(r18Ok?"true":"false")<<"\n}\n";
+            <<"  \"r18_behavioral_pipeline\": "<<(r18Ok?"true":"false")<<",\n"
+            <<"  \"r19_semantic_pipeline\": "<<(r19Ok?"true":"false")<<"\n}\n";
     return passed&&evidence?0:1;
 }
 }

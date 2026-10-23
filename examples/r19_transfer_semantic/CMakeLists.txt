@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(r19_transfer_semantic LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(transfer_catalog src/entry.cpp src/emitter.cpp)

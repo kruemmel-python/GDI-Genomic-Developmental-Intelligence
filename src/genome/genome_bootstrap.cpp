@@ -461,6 +461,13 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
         ,"gpi-operation-v1|update_build_contract_if_needed|16825|VerifiedSourceTransformation|BuildContract"
         ,"gpi-operation-v1|verify_application_behavior|16826|BuildContract|BehavioralEvolutionEvidence"
         ,"gpi-operation-v1|consolidate_behavioral_experience|16827|BehavioralEvolutionEvidence|BehavioralExperience"
+        ,"gpi-operation-v1|build_semantic_program_model|16828|BuildContract|SemanticProgramModel"
+        ,"gpi-operation-v1|analyze_behavioral_delta|16829|SemanticProgramModel|BehavioralDelta"
+        ,"gpi-operation-v1|discover_semantic_integration_point|16830|BehavioralDelta|IntegrationCandidate"
+        ,"gpi-operation-v1|plan_semantic_integration|16831|IntegrationCandidate|SemanticIntegrationPlan"
+        ,"gpi-operation-v1|transform_semantic_source|16832|SemanticIntegrationPlan|VerifiedSourceTransformation"
+        ,"gpi-operation-v1|verify_semantic_runtime|16833|VerifiedSourceTransformation|SemanticRuntimeEvidence"
+        ,"gpi-operation-v1|consolidate_semantic_experience|16834|SemanticRuntimeEvidence|SemanticExperience"
     };
     for (std::size_t i=0;i<researchCapabilities.size();++i) {
         const auto& capability=researchCapabilities[i];

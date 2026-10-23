@@ -4,7 +4,9 @@
 #include "gpi/development_strategy.hpp"
 #include "gpi/autonomous_software_engineering.hpp"
 #include "gpi/autonomous_behavioral_evolution.hpp"
+#include "gpi/autonomous_semantic_integration.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <filesystem>
 #include <fstream>
@@ -28,11 +30,11 @@ int main(int argc,char** argv) {
         std::filesystem::path curriculumPath,foreignProjectPath,workspace,compiler="g++",sandbox,componentMemory,repairMemory;
         std::filesystem::path krJava,krCompilerJar,strategyMemory,cmakeExecutable="cmake",ctestExecutable="ctest",msbuildExecutable,ninjaExecutable="ninja",makeExecutable="make";
         std::filesystem::path projectMemoryPath,devPrincipleMemoryPath;
-        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement,behavioralChangeRequirement;
+        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement,behavioralChangeRequirement,semanticIntegrationRequirement;
         bool controlExperiment=false;
         bool allowWriteback=false;
         bool krEndToEnd=false;
-        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false,r18Analyze=false,r18Plan=false,r18Execute=false;
+        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false,r18Analyze=false,r18Plan=false,r18Execute=false,r19Analyze=false,r19Discover=false,r19Plan=false,r19Execute=false;
         std::size_t maxCycles=8;
         for(int i=1;i<argc;++i) {
             const std::string key=argv[i];
@@ -56,6 +58,10 @@ int main(int argc,char** argv) {
             if(key=="--r18-analyze") { r18Analyze=true; continue; }
             if(key=="--r18-plan") { r18Plan=true; continue; }
             if(key=="--r18-execute") { r18Execute=true; continue; }
+            if(key=="--r19-analyze") { r19Analyze=true; continue; }
+            if(key=="--r19-discover-points") { r19Discover=true; continue; }
+            if(key=="--r19-plan") { r19Plan=true; continue; }
+            if(key=="--r19-execute") { r19Execute=true; continue; }
             if(i+1>=argc)throw std::invalid_argument("Every option requires a value");
             const std::string value=argv[++i];
             if(key=="--curriculum"||key=="--behavior")curriculumPath=value;
@@ -63,6 +69,7 @@ int main(int argc,char** argv) {
             else if(key=="--objective"||key=="--goal-prompt")objective=value;
             else if(key=="--development-requirement")developmentRequirement=value;
             else if(key=="--behavioral-change-requirement")behavioralChangeRequirement=value;
+            else if(key=="--semantic-integration-requirement")semanticIntegrationRequirement=value;
             else if(key=="--workspace")workspace=value;
             else if(key=="--compiler")compiler=value;
             else if(key=="--sandbox")sandbox=value;
@@ -85,9 +92,21 @@ int main(int argc,char** argv) {
             else if(key=="--cycles")maxCycles=parseCycles(value);
             else throw std::invalid_argument("Unknown option: "+key);
         }
-        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty()&&behavioralChangeRequirement.empty())||workspace.empty()||
-           (developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
+        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty())||workspace.empty()||
+           (developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty()&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
             throw std::invalid_argument("Either --foreign-project, --objective, --development-requirement, or --curriculum (or --behavior), plus --workspace are required");
+
+        if(!semanticIntegrationRequirement.empty()) {
+            if(foreignProjectPath.empty())throw std::invalid_argument("--semantic-integration-requirement requires --foreign-project");
+            genomic::gpi::SemanticIntegrationConfig r19;r19.originalProject=std::filesystem::absolute(foreignProjectPath);r19.isolatedWorkspace=std::filesystem::absolute(workspace);r19.experiencePath=r19.isolatedWorkspace/"r19_experience.gdire";r19.execute=r19Execute;
+            r19.nativeBuild.originalProject=r19.originalProject;r19.nativeBuild.isolatedWorkspace=r19.isolatedWorkspace/"baseline";r19.nativeBuild.configuration="Release";r19.nativeBuild.timeoutMilliseconds=600000;r19.nativeBuild.runTests=true;
+            r19.nativeBuild.cmakeExecutable=cmakeExecutable;r19.nativeBuild.ctestExecutable=ctestExecutable;r19.nativeBuild.msbuildExecutable=msbuildExecutable;r19.nativeBuild.ninjaExecutable=ninjaExecutable;r19.nativeBuild.makeExecutable=makeExecutable;
+            r19.nativeBuild.generatorOverride=generatorOverride;r19.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;r19.nativeBuild.windowsSdkOverride=windowsSdkOverride;
+            const auto result=genomic::gpi::runAutonomousSemanticIntegration(r19,semanticIntegrationRequirement);
+            std::cout<<"R19_CONTRACT="<<result.requirement.id<<"\nR19_CAPABILITY="<<result.requirement.capability<<"\nR19_ENTRY_POINTS="<<std::count_if(result.model.functions.begin(),result.model.functions.end(),[](const auto& f){return f.entryPoint;})<<"\nR19_CALL_EDGES="<<result.model.callEdges.size()<<"\nR19_SELECTED_POINT="<<result.plan.selected.node.path.string()<<":"<<result.plan.selected.node.symbol<<"\nR19_RATIONALE="<<result.plan.selected.rationale<<"\nR19_TRANSFORMATIONS="<<result.transformations.size()<<"\nR19_RUNTIME_TESTS="<<result.runtime.size()<<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")<<"\nREASON="<<result.reason<<"\nRESULT="<<genomic::gpi::toString(result.outcome)<<"\nREPORT="<<result.reportPath.string()<<'\n';
+            const bool analysisOnly=r19Analyze||r19Discover||r19Plan;
+            return result.outcome==genomic::gpi::SemanticIntegrationOutcome::Complete||(analysisOnly&&result.outcome==genomic::gpi::SemanticIntegrationOutcome::Incomplete)?0:4;
+        }
 
         if(!behavioralChangeRequirement.empty()) {
             if(foreignProjectPath.empty())throw std::invalid_argument("--behavioral-change-requirement requires --foreign-project");

@@ -1,77 +1,75 @@
 # GDI — Genomic Developmental Intelligence
 
-**Release:** 1.5.0 · **Platform:** Windows x64 · **Core:** C++20 · **Status:** R17 implemented within a deliberately bounded, fail-closed synthesis scope.
+**Release 1.7.0 · Windows x64 · C++20 · fail-closed autonomous software engineering research platform**
 
-GDI is a native C++20 system for analyzing, verifying, repairing and—within an explicitly supported scope—extending software projects. Its architecture combines an immutable synthetic genome, regulatory capability gates, build-contract reconstruction, strategy planning, isolated execution and persistent development evidence.
+GDI is a native C++20 system for investigating how software projects can be discovered, analysed, changed and verified with explicit safety boundaries. It combines an immutable synthetic genome with build-contract reconstruction, semantic program modelling, isolated transformation, native compiler/linker validation and persistent, provenance-bound development evidence.
 
-The current R17 release adds **Autonomous Software Engineering Intelligence (ASEI)**: a requirement can be transformed into a structured contract, a project-impact model, an architecture change plan, generated C++20 components, native build/test evidence and reusable development experience—without changing the protected source project.
+GDI reports success only when the real project build and the declared acceptance evidence succeed. Ambiguous, unsupported or insufficiently evidenced requests are blocked instead of receiving a speculative patch.
 
-> GDI does not claim universal autonomous programming. Unsupported, ambiguous or insufficiently evidenced requests are blocked instead of receiving speculative source changes.
+> Scope matters. GDI 1.7.0 proves bounded capabilities on real toolchains; it does not claim universal understanding or repair of arbitrary software.
 
-## Highlights
+## What is in this release
 
-- **R17 autonomous feature development** for supported CMake/C++20 tasks.
-- **R15 BuildContract** discovery for CMake, MSBuild, Ninja, Make and direct compiler workflows.
-- **R16 DevelopmentStrategy** planning, persistence, transfer scoring and fail-closed execution boundaries.
-- **R17 RequirementContract**, ChangeImpactGraph and ArchitectureChangePlan with traceable evidence.
-- **Isolated development workspaces** with original-tree integrity checks.
-- **Native verification** through the discovered toolchain, linker and CTest rather than a substitute compiler path.
-- **Persistent strategy and experience records** separate from the immutable genome.
-- **Native Windows GUI** with R17 requirement-driven development mode.
-- **KR integration evidence** for real KR, Rust, Go and SDL builds without modifying the KR toolchain.
-
-## R17: Requirement to Verified Software Change
-
-```text
-Requirement
-  → RequirementContract
-  → R15 BuildContract + reproduced baseline
-  → ChangeImpactGraph
-  → ArchitectureChangePlan
-  → R16 strategy graph
-  → genome-authorized C++20 synthesis
-  → isolated integration
-  → native build, tests and acceptance evidence
-  → persisted strategy and experience
-```
-
-R17 currently supports two verified capability classes:
-
-| Capability | Generated behavior | Acceptance coverage |
+| Capability | What it does | Safety boundary |
 | --- | --- | --- |
-| `persistent_state` | Typed persistent string state with save/load and integrity rejection | write, restart/load, corrupt-data rejection |
-| `integer_aggregation` | Integer-sequence total calculation | positive, empty and negative inputs |
+| R15 BuildContract | Reconstructs CMake, MSBuild, Ninja, Make and direct build contracts; identifies targets, compiler, SDK and tests. | Native baselines run only in isolated workspaces. |
+| R16 DevelopmentStrategy | Selects and persists authorised development operator graphs with negative learning. | Incompatible or cyclic strategies are rejected. |
+| R17 ASEI | Converts supported requirements into impact/architecture plans and isolated C++ components. | Only verified capability classes may be synthesised. |
+| R18 Behavioural evolution | Analyses bounded behavioural change contracts and validates them through native execution. | Original projects are hash-checked before and after. |
+| R19 semantic integration | Builds a source/call-flow model, discovers evidence-backed integration points and verifies generated changes end-to-end. | An unresolved or non-unique candidate yields `BLOCKED`. |
+| Language-neutral requirement concepts | Maps German and English requirement expressions onto the same canonical concepts before source analysis. | This is a versioned language-pack layer, not a claim of universal natural-language understanding. |
 
-Generated headers, implementations, acceptance tests and CMake integration are created only inside a new isolated workspace. The original project is checked before and after the run.
-
-## Architecture
-
-| Layer | Responsibility |
-| --- | --- |
-| Synthetic genome | Static capability definitions, grammar and regulatory loci; never mutated at runtime. |
-| R15 BuildContract | Discovers targets, dependencies, compiler/generator data, SDK evidence and test topology. |
-| R16 DevelopmentStrategy | Plans compatible operator graphs, records outcomes and persists reusable strategy evidence. |
-| R17 ASEI | Interprets requirements, computes impact, selects architecture, synthesizes approved components and verifies acceptance criteria. |
-| Native verification | Runs the real project build, linker, executable and CTest path in an isolated workspace. |
-| Experience stores | Persist project facts, transferable principles, strategy graphs and R17 outcome records with provenance. |
-
-## Quick Start
-
-### Prerequisites
-
-- Windows 11 x64
-- CMake 3.20 or newer
-- A C++20 compiler
-- A supported generator (the validated reference uses **MinGW Makefiles** and GCC 16.1.0)
-
-Reference toolchain paths used for the verified Windows build:
+## R19 workflow
 
 ```text
-D:\android_project\windows\toolchain\bin\g++.exe
-D:\android_project\windows\toolchain\bin\mingw32-make.exe
+Requirement text
+  → canonical semantic concepts
+  → R15 build contract + protected baseline
+  → semantic program / call-flow model
+  → behavioural delta and candidate ranking
+  → genome-authorised strategy
+  → isolated source transformation
+  → native build, linker, CTest and runtime acceptance
+  → integrity proof and persistent evidence
 ```
 
-### Build and Test
+The current verified R19 transformation classes are deliberately narrow:
+
+| Capability | Required evidence | Runtime proof |
+| --- | --- | --- |
+| `record_validation` | Input loop, normal processor path and dedicated error sink | Valid records retained; invalid records excluded and reported. |
+| `state_resume_validation` | State loader and a resolved entrypoint-to-process transition | Valid state starts normally; invalid state is rejected. |
+
+German and English requests such as `ungueltige Datensaetze protokollieren` / `report invalid records` and `beschaedigten Zustand ablehnen` / `reject corrupt state` are projected onto these same concepts. The project code is analysed independently of the human wording.
+
+## Proven verification and blind-transfer results
+
+The repository contains reproducible positive fixtures for the bounded R19 classes. The independent transfer campaigns also document correct blocking rather than artificial success:
+
+* **Chroniken der Gegenwelt:** native C++17 baseline built and tested; a crafting-material requirement was blocked because no authorised crafting/inventory transformation exists.
+* **TATARUS CIVITAS:** native C++20 baseline built, CTest passed and the real CLI reference run completed; the original R19 run blocked. After the 1.7.0 language-concept extension, the German state request is recognised as `state_resume_validation`, but is still blocked because the project does not expose R19's proven state-loader-to-process pattern.
+
+These results are evidence of the boundaries as well as of the capabilities. They are not presented as successful autonomous changes.
+
+## Safety model
+
+* Foreign project roots are treated as protected inputs.
+* Work happens in external, isolated copies only.
+* SHA-256 manifests establish original-tree integrity before and after a run.
+* Path validation rejects unsafe workspace placement and traversal.
+* Symlink/junction-sensitive import and copy logic is fail-closed.
+* Generated build artefacts are protected; writeback requires explicit authorisation.
+* Transformations are provenance- and digest-bound, then recompiled and re-tested.
+
+## Build on Windows
+
+Validated reference toolchain:
+
+```text
+Compiler: D:\android_project\windows\toolchain\bin\g++.exe  (GCC 16.1.0)
+Build tool: D:\android_project\windows\toolchain\bin\mingw32-make.exe
+CMake: C:\Program Files\CMake\bin\cmake.exe
+```
 
 ```powershell
 $env:PATH = 'D:\android_project\windows\toolchain\bin;' + $env:PATH
@@ -80,172 +78,67 @@ cmake -S . -B build -G 'MinGW Makefiles' `
   -DCMAKE_CXX_COMPILER='D:/android_project/windows/toolchain/bin/g++.exe' `
   -DCMAKE_MAKE_PROGRAM='D:/android_project/windows/toolchain/bin/mingw32-make.exe'
 
-cmake --build build -j 1
+cmake --build build -j 4
 ctest --test-dir build --output-on-failure
 ```
 
-The release baseline is compiled with:
+Core targets are compiled with:
 
 ```text
 -std=c++20 -Wall -Wextra -Wpedantic -Werror
 ```
 
-The R17 release verification completed **12/12 CTest tests** successfully.
+## R19 CLI
 
-## R17 CLI Usage
-
-Use `gdi_intelligence` to develop a supported new capability in an isolated copy of a CMake project:
+Use the native R19 path against a protected project and an external workspace:
 
 ```powershell
 .\build\gdi_intelligence.exe `
-  --foreign-project .\examples\r17_neutral_project `
-  --development-requirement `
-    'Add persistent session state that is saved, restored after restart, and rejected when corrupted.' `
-  --workspace D:\gdi-runs\session-development `
-  --compiler D:\android_project\windows\toolchain\bin\g++.exe `
+  --foreign-project D:\path\to\protected-project `
+  --workspace D:\gdi-runs\semantic-integration `
+  --semantic-integration-requirement `
+    'Einen gespeicherten Zustand wiederherstellen und beschaedigte Zustandsdaten ablehnen.' `
   --cmake 'C:\Program Files\CMake\bin\cmake.exe' `
   --ctest 'C:\Program Files\CMake\bin\ctest.exe' `
-  --r17-execute
+  --r19-execute
 ```
 
-Successful output includes:
+Important output fields:
 
 ```text
-R17_REQUIREMENT=<stable requirement id>
-R17_CAPABILITY=<supported capability class>
-R17_ARCHITECTURE=<architecture plan id>
-R17_CHANGES=<generated artifacts>
-R17_ACCEPTANCE=<verified criteria>
-ORIGINAL_UNTOUCHED=YES
-EXPERIENCE_PERSISTED=YES
-RESULT=COMPLETE
+R19_CAPABILITY=<canonical capability or empty>
+R19_SELECTED_POINT=<source and symbol only when proven>
+R19_TRANSFORMATIONS=<count>
+R19_RUNTIME_TESTS=<count>
+ORIGINAL_UNTOUCHED=YES|NO
+RESULT=COMPLETE|INCOMPLETE|BLOCKED|FAILED
 ```
 
-Omit `--r17-execute` to inspect and persist the contract, impact and architecture plan without carrying out the generated native build. The result is then intentionally `INCOMPLETE`.
+`BLOCKED` is a valid safety result. It means that GDI did not have sufficient general, authorised evidence to modify the project.
 
-## Windows GUI
+## Architecture and evidence
 
-After a Windows build, start:
-
-```powershell
-.\build\gdi_gui.exe
-```
-
-`gpi_gui.exe` remains available for compatibility. Select:
-
-```text
-GDI R17 – Neue Softwarefunktion aus Anforderung entwickeln (isoliert)
-```
-
-1. Enter the new functional requirement in the upper task field.
-2. Select the target project directory in the project field.
-3. Choose **Ziel analysieren** to inspect the requirement, build contract, impact graph and architecture plan.
-4. Choose **Entwicklung starten** to run the isolated R17 pipeline.
-
-The GUI launches the same production backend as the CLI, displays process output and records the result workspace. Its self-test also exercises the R17 requirement pipeline:
-
-```powershell
-.\build\gdi_gui.exe --self-test
-```
-
-## Build-Contract and Repair Intelligence
-
-R15/R16 capabilities remain available through `gdi_intelligence`:
-
-```powershell
-.\build\gdi_intelligence.exe `
-  --foreign-project <project-root> `
-  --workspace <isolated-workspace> `
-  --execute-strategy `
-  --strategy-memory <workspace>\strategies.gdis
-```
-
-GDI distinguishes source defects, configuration errors, unavailable SDKs, compiler-family incompatibilities, unresolved link dependencies and test/runtime failures. The native contract is reconstructed and executed before any successful outcome is reported.
-
-## KR / Rust / Go / SDL Verification
-
-The optional KR path regenerates `KR_BUILD` only in an isolated workspace, then validates real C++, Rust, Go and SDL integration plus a bounded runtime readiness marker.
-
-```powershell
-.\build\gdi_intelligence.exe --kr-e2e `
-  --foreign-project F:\MDRAFTNE `
-  --workspace D:\gdi-runs\mdraftne-e2e `
-  --compiler D:\android_project\windows\toolchain\bin\g++.exe `
-  --kr-java D:\android_project\windows\runtime\jdk\bin\java.exe `
-  --kr-compiler-jar D:\android_project\windows\dist\KR-Compiler-IDE.jar `
-  --runtime-ready-marker 'START: Erster Frame gerendert'
-```
-
-The KR compiler toolchain and protected original project are never modified.
-
-## Security Model
-
-- Foreign projects are imported read-only by default.
-- Workspaces nested below a protected original project are rejected.
-- Imports skip symbolic links/junctions and generated output directories.
-- R17 writes only to explicitly generated paths in its isolated copy.
-- A reproducible baseline is mandatory before source generation.
-- Build, test and runtime outcomes are captured; a successful compile alone is insufficient.
-- Original project hashes are compared before and after each development run.
-- Unrecognized requirements, missing authorization and unsafe transformations fail closed.
-
-## R18 Behavioral Evolution
-
-R18 extends GDI from generating isolated components to safely integrating verified behavioral changes into an existing application's normal execution path. It reconstructs a native baseline, analyzes executable entry points and data/state relations, creates an isolated work copy, applies a digest-bound transformation, rebuilds the real application and verifies changed runtime behavior.
-
-The release contains two independent end-to-end applications: validated CSV processing (skip and report malformed records) and state-aware CLI startup (resume valid state, reject inconsistent state). Unsupported requirements and ambiguous integration evidence fail closed without modifying the imported source tree.
-
-The next research objective is deliberately broader than adding fixed behavioral classes: derive suitable integration points from the semantics of an unknown project itself, without a prepared `GDI_R18_HOOK` annotation. Until that semantic proof is available, R18 retains its explicit opt-in anchor as a safety boundary.
-
-## Supported Scope and Explicit Limits
-
-GDI is **not** a replacement for a complete C++20 compiler, linker, semantic theorem prover or general Rust/Go synthesis system.
-
-The current R18 implementation does not claim:
-
-- arbitrary natural-language requirement interpretation;
-- arbitrary mutation of existing project sources or hook-free semantic integration;
-- universal ISO C++20 semantic coverage;
-- arbitrary cross-language implementation synthesis;
-- automatic writeback to foreign original projects; or
-- a completed independent blind-transfer research validation.
-
-When a request is unsupported, ambiguous or insufficiently evidenced, GDI returns `BLOCKED` or `INCOMPLETE` instead of generating plausible-looking but unverified code.
-
-## Verification Evidence
-
-R18 implementation and verification records are stored in:
-
-```text
-GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/
-├── SUMMARY.md
-├── IMPLEMENTATION_MATRIX.md
-├── SAFETY_AND_LIMITS.md
-├── TEST_CAMPAIGN.md
-└── IMPLEMENTATION_COMPLETION_REPORT.md
-```
-
-The public release and Windows-x64 package are available on the [GitHub Releases page](https://github.com/kruemmel-python/GDI-Genomic-Developmental-Intelligence/releases/tag/v1.6.0).
-
-## Main Executables
-
-| Executable | Role |
+| Layer | Responsibility |
 | --- | --- |
-| `gdi_intelligence` | R15–R18 build, strategy, autonomous-development and behavioral-integration pipeline. |
-| `gdi_gui` / `gpi_gui` | Native Windows interface, including R17 and R18 modes. |
-| `gpi_sandbox` | Windows sandbox/process isolation support. |
-| `gdi_create` | Bounded behavioral C++20 synthesis. |
-| `gpi_architect` | Typed architecture-goal synthesis. |
-| `gpi_synthesize` | Typed multi-file blueprint synthesis. |
-| `gpi_develop` | Manifest-driven project development workflow. |
-| `gpi_research` | Bounded research and hypothesis execution. |
+| Immutable genome | Static loci define capabilities and regulatory authority; the genome is never mutated at runtime. |
+| Semantic engine | Models functions, source provenance, direct calls, input/output/state hints and uncertainty. |
+| Development memory | Stores verified strategy outcomes and evidence independently of the genome. |
+| Native verifier | Uses the discovered project toolchain and actual executable, not a substitute compiler path. |
+| Windows GUI | Displays the current engine build identity and executes the integrated verification backend. |
 
-## Documentation
+Detailed implementation and test evidence is maintained in [GDI_VERIFICATION_REPORT](GDI_VERIFICATION_REPORT), including [R19 language semantics](GDI_VERIFICATION_REPORT/R19_IMPLEMENTATION/LANGUAGE_SEMANTICS.md).
 
-- [Technical documentation](DOCUMENTATION.md)
-- [R18 implementation summary](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/SUMMARY.md)
-- [R18 safety and limits](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/SAFETY_AND_LIMITS.md)
-- [R18 completion report](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/IMPLEMENTATION_COMPLETION_REPORT.md)
+## Repository layout
+
+```text
+apps/                         Native CLI and Windows GUI entry points
+include/gpi/                  Public project-intelligence interfaces
+src/gpi/                      Build contracts, strategies, semantic integration
+src/genome/                   Immutable genomic capability definitions
+tests/                        Native regression and end-to-end tests
+examples/r19_*_semantic/      Hook-free R19 fixtures
+GDI_VERIFICATION_REPORT/      Verification reports and reproducible evidence guidance
+```
 
 ## License
 
