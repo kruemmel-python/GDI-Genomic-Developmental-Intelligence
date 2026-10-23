@@ -189,14 +189,22 @@ The KR compiler toolchain and protected original project are never modified.
 - Original project hashes are compared before and after each development run.
 - Unrecognized requirements, missing authorization and unsafe transformations fail closed.
 
+## R18 Behavioral Evolution
+
+R18 extends GDI from generating isolated components to safely integrating verified behavioral changes into an existing application's normal execution path. It reconstructs a native baseline, analyzes executable entry points and data/state relations, creates an isolated work copy, applies a digest-bound transformation, rebuilds the real application and verifies changed runtime behavior.
+
+The release contains two independent end-to-end applications: validated CSV processing (skip and report malformed records) and state-aware CLI startup (resume valid state, reject inconsistent state). Unsupported requirements and ambiguous integration evidence fail closed without modifying the imported source tree.
+
+The next research objective is deliberately broader than adding fixed behavioral classes: derive suitable integration points from the semantics of an unknown project itself, without a prepared `GDI_R18_HOOK` annotation. Until that semantic proof is available, R18 retains its explicit opt-in anchor as a safety boundary.
+
 ## Supported Scope and Explicit Limits
 
 GDI is **not** a replacement for a complete C++20 compiler, linker, semantic theorem prover or general Rust/Go synthesis system.
 
-The current R17 implementation does not claim:
+The current R18 implementation does not claim:
 
 - arbitrary natural-language requirement interpretation;
-- arbitrary mutation of existing project sources;
+- arbitrary mutation of existing project sources or hook-free semantic integration;
 - universal ISO C++20 semantic coverage;
 - arbitrary cross-language implementation synthesis;
 - automatic writeback to foreign original projects; or
@@ -206,27 +214,25 @@ When a request is unsupported, ambiguous or insufficiently evidenced, GDI return
 
 ## Verification Evidence
 
-R17 implementation and verification records are stored in:
+R18 implementation and verification records are stored in:
 
 ```text
-GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/
-├── R17_IMPLEMENTATION_REPORT.md
-├── R17_ARCHITECTURE.md
-├── R17_REQUIREMENTS_TRACEABILITY.md
-├── R17_OPERATOR_AND_GENOME_MAPPING.md
-├── R17_INTEGRATION_REPORT.md
-├── R17_SUPPORTED_SCOPE_AND_LIMITATIONS.md
-└── evidence/
+GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/
+├── SUMMARY.md
+├── IMPLEMENTATION_MATRIX.md
+├── SAFETY_AND_LIMITS.md
+├── TEST_CAMPAIGN.md
+└── IMPLEMENTATION_COMPLETION_REPORT.md
 ```
 
-The public release and Windows-x64 package are available on the [GitHub Releases page](https://github.com/kruemmel-python/GDI-Genomic-Developmental-Intelligence/releases/tag/v1.5.0).
+The public release and Windows-x64 package are available on the [GitHub Releases page](https://github.com/kruemmel-python/GDI-Genomic-Developmental-Intelligence/releases/tag/v1.6.0).
 
 ## Main Executables
 
 | Executable | Role |
 | --- | --- |
-| `gdi_intelligence` | R15/R16/R17 build, strategy and autonomous-development pipeline. |
-| `gdi_gui` / `gpi_gui` | Native Windows interface, including R17 mode. |
+| `gdi_intelligence` | R15–R18 build, strategy, autonomous-development and behavioral-integration pipeline. |
+| `gdi_gui` / `gpi_gui` | Native Windows interface, including R17 and R18 modes. |
 | `gpi_sandbox` | Windows sandbox/process isolation support. |
 | `gdi_create` | Bounded behavioral C++20 synthesis. |
 | `gpi_architect` | Typed architecture-goal synthesis. |
@@ -237,9 +243,9 @@ The public release and Windows-x64 package are available on the [GitHub Releases
 ## Documentation
 
 - [Technical documentation](DOCUMENTATION.md)
-- [R17 implementation report](GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/R17_IMPLEMENTATION_REPORT.md)
-- [R17 supported scope and limits](GDI_VERIFICATION_REPORT/R17_IMPLEMENTATION/R17_SUPPORTED_SCOPE_AND_LIMITATIONS.md)
-- [Implementation completion report](IMPLEMENTATION_COMPLETION_REPORT.md)
+- [R18 implementation summary](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/SUMMARY.md)
+- [R18 safety and limits](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/SAFETY_AND_LIMITS.md)
+- [R18 completion report](GDI_VERIFICATION_REPORT/R18_IMPLEMENTATION/IMPLEMENTATION_COMPLETION_REPORT.md)
 
 ## License
 

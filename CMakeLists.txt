@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.5.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.6.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -62,6 +62,7 @@ set(GENOMIC_SOURCES
     src/gpi/build_contract.cpp
     src/gpi/development_strategy.cpp
     src/gpi/autonomous_software_engineering.cpp
+    src/gpi/autonomous_behavioral_evolution.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -165,6 +166,9 @@ target_link_libraries(test_r15_r16 PRIVATE genomic_core)
 add_executable(test_r17_asei tests/test_r17_asei.cpp)
 target_link_libraries(test_r17_asei PRIVATE genomic_core)
 
+add_executable(test_r18_behavioral tests/test_r18_behavioral.cpp)
+target_link_libraries(test_r18_behavioral PRIVATE genomic_core)
+
 enable_testing()
 
 option(GDI_ENABLE_KR_E2E_TEST "Enable the external KR/Go/Rust/SDL project end-to-end test" OFF)
@@ -199,6 +203,8 @@ add_test(NAME GDIR15R16UnitTests COMMAND test_r15_r16
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_r15_r16_unit")
 add_test(NAME GDIR17AseiTests COMMAND test_r17_asei
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_r17_asei")
+add_test(NAME GDIR18BehavioralEvolutionTests COMMAND test_r18_behavioral
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_r18_behavioral" "${CMAKE_COMMAND}")
 
 add_test(NAME GPIPromptEndToEnd
     COMMAND ${CMAKE_COMMAND}

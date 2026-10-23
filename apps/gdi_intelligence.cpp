@@ -3,6 +3,7 @@
 #include "gpi/build_contract.hpp"
 #include "gpi/development_strategy.hpp"
 #include "gpi/autonomous_software_engineering.hpp"
+#include "gpi/autonomous_behavioral_evolution.hpp"
 
 #include <charconv>
 #include <filesystem>
@@ -27,11 +28,11 @@ int main(int argc,char** argv) {
         std::filesystem::path curriculumPath,foreignProjectPath,workspace,compiler="g++",sandbox,componentMemory,repairMemory;
         std::filesystem::path krJava,krCompilerJar,strategyMemory,cmakeExecutable="cmake",ctestExecutable="ctest",msbuildExecutable,ninjaExecutable="ninja",makeExecutable="make";
         std::filesystem::path projectMemoryPath,devPrincipleMemoryPath;
-        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement;
+        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement,behavioralChangeRequirement;
         bool controlExperiment=false;
         bool allowWriteback=false;
         bool krEndToEnd=false;
-        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false;
+        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false,r18Analyze=false,r18Plan=false,r18Execute=false;
         std::size_t maxCycles=8;
         for(int i=1;i<argc;++i) {
             const std::string key=argv[i];
@@ -52,12 +53,16 @@ int main(int argc,char** argv) {
             if(key=="--induce-strategy") { induceStrategy=true; continue; }
             if(key=="--execute-strategy") { executeStrategy=true; continue; }
             if(key=="--r17-execute") { r17Execute=true; continue; }
+            if(key=="--r18-analyze") { r18Analyze=true; continue; }
+            if(key=="--r18-plan") { r18Plan=true; continue; }
+            if(key=="--r18-execute") { r18Execute=true; continue; }
             if(i+1>=argc)throw std::invalid_argument("Every option requires a value");
             const std::string value=argv[++i];
             if(key=="--curriculum"||key=="--behavior")curriculumPath=value;
             else if(key=="--foreign-project")foreignProjectPath=value;
             else if(key=="--objective"||key=="--goal-prompt")objective=value;
             else if(key=="--development-requirement")developmentRequirement=value;
+            else if(key=="--behavioral-change-requirement")behavioralChangeRequirement=value;
             else if(key=="--workspace")workspace=value;
             else if(key=="--compiler")compiler=value;
             else if(key=="--sandbox")sandbox=value;
@@ -80,9 +85,35 @@ int main(int argc,char** argv) {
             else if(key=="--cycles")maxCycles=parseCycles(value);
             else throw std::invalid_argument("Unknown option: "+key);
         }
-        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty())||workspace.empty()||
-           (developmentRequirement.empty()&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
+        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty()&&behavioralChangeRequirement.empty())||workspace.empty()||
+           (developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
             throw std::invalid_argument("Either --foreign-project, --objective, --development-requirement, or --curriculum (or --behavior), plus --workspace are required");
+
+        if(!behavioralChangeRequirement.empty()) {
+            if(foreignProjectPath.empty())throw std::invalid_argument("--behavioral-change-requirement requires --foreign-project");
+            genomic::gpi::BehavioralEvolutionConfig r18;
+            r18.originalProject=std::filesystem::absolute(foreignProjectPath);r18.isolatedWorkspace=std::filesystem::absolute(workspace);
+            r18.strategyMemory=strategyMemory.empty()?(workspace/"r18_strategies.gdis"):strategyMemory;
+            r18.experiencePath=workspace/"r18_experience.gdire";r18.execute=r18Execute;
+            r18.nativeBuild.originalProject=r18.originalProject;r18.nativeBuild.isolatedWorkspace=r18.isolatedWorkspace/"baseline";
+            r18.nativeBuild.configuration="Release";r18.nativeBuild.timeoutMilliseconds=600000;r18.nativeBuild.runTests=true;
+            r18.nativeBuild.cmakeExecutable=cmakeExecutable;r18.nativeBuild.ctestExecutable=ctestExecutable;
+            r18.nativeBuild.msbuildExecutable=msbuildExecutable;r18.nativeBuild.ninjaExecutable=ninjaExecutable;r18.nativeBuild.makeExecutable=makeExecutable;
+            r18.nativeBuild.generatorOverride=generatorOverride;r18.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;r18.nativeBuild.windowsSdkOverride=windowsSdkOverride;
+            const auto result=genomic::gpi::runAutonomousBehavioralEvolution(r18,behavioralChangeRequirement);
+            std::cout<<"R18_CONTRACT="<<result.contract.id
+                     <<"\nR18_CAPABILITY="<<result.contract.capabilityClass
+                     <<"\nR18_ENTRY_POINTS="<<result.program.entryPoints.size()
+                     <<"\nR18_INTEGRATION_PLAN="<<result.plan.id
+                     <<"\nR18_TRANSFORMATIONS="<<result.transformations.size()
+                     <<"\nR18_BEHAVIOR_TESTS="<<result.evidence.tests.size()
+                     <<"\nORIGINAL_UNTOUCHED="<<(result.evidence.originalUntouched?"YES":"NO")
+                     <<"\nREASON="<<result.reason
+                     <<"\nRESULT="<<genomic::gpi::toString(result.outcome)
+                     <<"\nREPORT="<<result.evidence.reportPath.string()<<'\n';
+            const bool analysisOnly=r18Analyze||r18Plan;
+            return result.outcome==genomic::gpi::BehavioralEvolutionOutcome::Complete||(analysisOnly&&result.outcome==genomic::gpi::BehavioralEvolutionOutcome::Incomplete)?0:4;
+        }
 
         if(!developmentRequirement.empty()) {
             if(foreignProjectPath.empty())throw std::invalid_argument("--development-requirement requires --foreign-project");

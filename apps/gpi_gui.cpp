@@ -15,6 +15,7 @@
 #include "gpi/build_contract.hpp"
 #include "gpi/development_strategy.hpp"
 #include "gpi/autonomous_software_engineering.hpp"
+#include "gpi/autonomous_behavioral_evolution.hpp"
 #include "gpi/goal_architect.hpp"
 #include "gpi/project_blueprint.hpp"
 #include "gpi/project_manifest.hpp"
@@ -160,29 +161,31 @@ std::filesystem::path uniqueRunDirectory(const std::filesystem::path& root) {
 enum class GuiMode {
     ForeignProject = 0,
     R17Development = 1,
-    AutonomousPlanner = 2,
-    DevelopmentalIntelligence = 3,
-    Behavioral = 4,
-    Architecture = 5,
-    Blueprint = 6,
-    Integrated = 7
+    R18BehavioralEvolution = 2,
+    AutonomousPlanner = 3,
+    DevelopmentalIntelligence = 4,
+    Behavioral = 5,
+    Architecture = 6,
+    Blueprint = 7,
+    Integrated = 8
 };
 
 GuiMode currentGuiMode() {
     const LRESULT sel=SendMessageW(g_architecture,CB_GETCURSEL,0,0);
     if(sel==0)return GuiMode::ForeignProject;
     if(sel==1)return GuiMode::R17Development;
-    if(sel==2)return GuiMode::AutonomousPlanner;
-    if(sel==3)return GuiMode::DevelopmentalIntelligence;
-    if(sel==4)return GuiMode::Behavioral;
-    if(sel==5)return GuiMode::Architecture;
-    if(sel==6)return GuiMode::Blueprint;
+    if(sel==2)return GuiMode::R18BehavioralEvolution;
+    if(sel==3)return GuiMode::AutonomousPlanner;
+    if(sel==4)return GuiMode::DevelopmentalIntelligence;
+    if(sel==5)return GuiMode::Behavioral;
+    if(sel==6)return GuiMode::Architecture;
+    if(sel==7)return GuiMode::Blueprint;
     return GuiMode::Integrated;
 }
 
 bool generativeSpecMode() {
     const auto mode=currentGuiMode();
-    return mode==GuiMode::ForeignProject||mode==GuiMode::R17Development||mode==GuiMode::AutonomousPlanner||
+    return mode==GuiMode::ForeignProject||mode==GuiMode::R17Development||mode==GuiMode::R18BehavioralEvolution||mode==GuiMode::AutonomousPlanner||
            mode==GuiMode::DevelopmentalIntelligence||mode==GuiMode::Behavioral||
            mode==GuiMode::Architecture||mode==GuiMode::Blueprint;
 }
@@ -193,6 +196,10 @@ std::filesystem::path examplePath(GuiMode mode) {
         std::filesystem::path candidate;
         if(mode==GuiMode::R17Development) {
             candidate=root/L"examples"/L"r17_neutral_project";
+            if(std::filesystem::is_directory(candidate))return std::filesystem::absolute(candidate);
+            continue;
+        } else if(mode==GuiMode::R18BehavioralEvolution) {
+            candidate=root/L"examples"/L"r18_csv_application";
             if(std::filesystem::is_directory(candidate))return std::filesystem::absolute(candidate);
             continue;
         } else if(mode==GuiMode::ForeignProject) {
@@ -480,6 +487,18 @@ void analyzeGoal() {
                   <<L"\r\nAkzeptanzkriterien: "<<requirementContract.acceptance.size()
                   <<L"\r\n[Sicherheitsgrenze] Die Ausfuehrung erzeugt und prueft nur eine isolierte Arbeitskopie; Originalquellen bleiben read-only.";
             g_contractAccepted=true;
+        } else if(mode==GuiMode::R18BehavioralEvolution) {
+            const std::filesystem::path projectRoot(textOf(g_behavior));
+            const auto requirement=textOf(g_prompt);
+            if(!std::filesystem::is_directory(projectRoot)||requirement.empty())throw std::invalid_argument("Projektordner und R18-Verhaltensanforderung sind erforderlich.");
+            const auto contract=genomic::gpi::interpretBehavioralChangeRequirement(narrow(requirement));
+            const auto model=genomic::gpi::analyzeBehavioralProgram(projectRoot);
+            const auto plan=genomic::gpi::synthesizeBehavioralIntegration(model,contract);
+            if(!plan.executable)throw std::invalid_argument("R18 konnte keine eindeutige sichere Integrationsstelle nachweisen.");
+            report<<L"R18 – VERHALTENSENTWICKLUNG (isoliert)\r\n\r\nVertrag: "<<widen(contract.capabilityClass)
+                  <<L"\r\nEinstiegspunkte: "<<model.entryPoints.size()<<L"\r\nIntegration: "<<widen(plan.sourceFile)
+                  <<L"\r\n[Sicherheitsgrenze] Nur digest-geprüfte, isolierte Quelltransformationen werden ausgeführt.";
+            g_contractAccepted=true;
         } else if(mode==GuiMode::ForeignProject) {
             std::wstring rawPath=textOf(g_behavior);
             while(!rawPath.empty()&&(rawPath.back()==L'\r'||rawPath.back()==L'\n'||rawPath.back()==L' '||rawPath.back()==L'\t'))rawPath.pop_back();
@@ -664,6 +683,10 @@ void changeMode() {
         SetWindowTextW(GetDlgItem(g_window,2001),L"ZIELPROJEKT (Ordnerpfad – R17 entwickelt nur isolierte Kopie)");
         SetWindowTextW(GetDlgItem(g_window,2000),L"NEUE ENTWICKLUNGSANFORDERUNG");
         SetWindowTextW(g_behaviorOpen,L"Ordner oeffnen");
+    } else if(mode==GuiMode::R18BehavioralEvolution) {
+        SetWindowTextW(GetDlgItem(g_window,2001),L"ZIELPROJEKT (Ordnerpfad – R18 transformiert nur isolierte Kopie)");
+        SetWindowTextW(GetDlgItem(g_window,2000),L"VERHALTENSANFORDERUNG");
+        SetWindowTextW(g_behaviorOpen,L"Ordner oeffnen");
     } else if(mode==GuiMode::AutonomousPlanner) {
         SetWindowTextW(GetDlgItem(g_window,2001),L"UEBERGEORDNETES ZIEL (Autonomer ontogenetischer Entwicklungsplaner)");
         SetWindowTextW(g_behaviorOpen,L"Datei oeffnen");
@@ -696,7 +719,7 @@ void loadBehavior(const std::filesystem::path& file) {
 }
 
 void openBehaviorFile() {
-    if(currentGuiMode()==GuiMode::ForeignProject||currentGuiMode()==GuiMode::R17Development) {
+    if(currentGuiMode()==GuiMode::ForeignProject||currentGuiMode()==GuiMode::R17Development||currentGuiMode()==GuiMode::R18BehavioralEvolution) {
         BROWSEINFOW info{};info.hwndOwner=g_window;info.lpszTitle=L"Fremdes C++20-Projektverzeichnis zur Read-Only-Analyse auswaehlen";
         info.ulFlags=BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
         if(PIDLIST_ABSOLUTE item=SHBrowseForFolderW(&info)) {
@@ -756,6 +779,11 @@ void loadExample() {
             g_contractAccepted=false;EnableWindow(g_run,FALSE);
             return;
         }
+        if(mode==GuiMode::R18BehavioralEvolution) {
+            SetWindowTextW(g_behavior,example.empty()?L"examples\\r18_csv_application":example.wstring().c_str());
+            SetWindowTextW(g_prompt,L"For CSV records skip invalid rows and write an error report.");
+            g_contractAccepted=false;EnableWindow(g_run,FALSE);return;
+        }
         if(!example.empty())loadBehavior(example);
         else {
             std::wstring fallback=defaultBehavior();
@@ -779,6 +807,7 @@ std::wstring selectedArchitecture() {
     const auto mode=currentGuiMode();
     if(mode==GuiMode::ForeignProject)return L"foreign";
     if(mode==GuiMode::R17Development)return L"r17";
+    if(mode==GuiMode::R18BehavioralEvolution)return L"r18";
     if(mode==GuiMode::AutonomousPlanner)return L"planner";
     if(mode==GuiMode::DevelopmentalIntelligence)return L"intelligence";
     if(mode==GuiMode::Behavioral)return L"behavior";
@@ -799,6 +828,7 @@ void runChild(std::wstring input,std::wstring requirement,std::filesystem::path 
     try {
         const bool isForeign=architecture==L"foreign";
         const bool isR17=architecture==L"r17";
+        const bool isR18=architecture==L"r18";
         const bool isPlanner=architecture==L"planner";
         const bool isIntelligence=architecture==L"intelligence";
         const bool isBehavior=architecture==L"behavior";
@@ -806,7 +836,7 @@ void runChild(std::wstring input,std::wstring requirement,std::filesystem::path 
         const bool isBlueprint=architecture==L"blueprint";
         const auto bin=executableDirectory();
         std::wstring exeName=L"gpi_integrated.exe";
-        if(isForeign||isR17||isPlanner||isIntelligence)exeName=L"gdi_intelligence.exe";
+        if(isForeign||isR17||isR18||isPlanner||isIntelligence)exeName=L"gdi_intelligence.exe";
         else if(isBehavior)exeName=L"gdi_create.exe";
         else if(isArchitect)exeName=L"gpi_architect.exe";
         else if(isBlueprint)exeName=L"gpi_synthesize.exe";
@@ -829,6 +859,10 @@ void runChild(std::wstring input,std::wstring requirement,std::filesystem::path 
                 L" --workspace "+quote((runDirectory/L"r17_workspace").wstring())+
                 L" --compiler "+quote(compiler.wstring())+
                 L" --r17-execute --strategy-memory "+quote((root/L"gdi_gui_r17_strategies.gdis").wstring());
+        } else if(isR18) {
+            command+=L" --foreign-project "+quote(input)+L" --behavioral-change-requirement "+quote(requirement)+
+                L" --workspace "+quote((runDirectory/L"r18_workspace").wstring())+L" --compiler "+quote(compiler.wstring())+
+                L" --r18-execute --strategy-memory "+quote((root/L"gdi_gui_r18_strategies.gdis").wstring());
         } else if(isForeign) {
             const auto sandbox=bin/L"gpi_sandbox.exe";
             if(!std::filesystem::is_regular_file(sandbox))
@@ -952,7 +986,7 @@ void startRun() {
         const auto mode=currentGuiMode();
         const auto genSpec=generativeSpecMode();
         const auto input=genSpec?textOf(g_behavior):textOf(g_prompt);
-        const auto requirement=mode==GuiMode::R17Development?textOf(g_prompt):L"";
+        const auto requirement=(mode==GuiMode::R17Development||mode==GuiMode::R18BehavioralEvolution)?textOf(g_prompt):L"";
         const auto compiler=textOf(g_compiler),workspace=textOf(g_workspace);
         if(input.empty()||compiler.empty()||workspace.empty())
             throw std::invalid_argument("Ziel, Compiler und Arbeitsordner sind erforderlich.");
@@ -965,6 +999,10 @@ void startRun() {
             if(!std::filesystem::is_directory(std::filesystem::path(cleanPath)))throw std::invalid_argument("Der Projektordner existiert nicht.");
             const auto contract=genomic::gpi::interpretDevelopmentRequirement(narrow(requirement));
             if(contract.status!=genomic::gpi::RequirementStatus::Clarified)throw std::invalid_argument("Anforderung liegt ausserhalb des sicheren R17-Syntheseumfangs.");
+        } else if(mode==GuiMode::R18BehavioralEvolution) {
+            if(requirement.empty())throw std::invalid_argument("Bitte eine R18-Verhaltensanforderung eingeben.");
+            if(!std::filesystem::is_directory(std::filesystem::path(input)))throw std::invalid_argument("Das R18-Zielprojekt existiert nicht.");
+            if(!genomic::gpi::synthesizeBehavioralIntegration(genomic::gpi::analyzeBehavioralProgram(input),genomic::gpi::interpretBehavioralChangeRequirement(narrow(requirement))).executable)throw std::invalid_argument("Keine sichere R18-Integrationsstelle nachgewiesen.");
         } else if(mode==GuiMode::ForeignProject) {
             std::wstring cleanPath=input;
             while(!cleanPath.empty()&&(cleanPath.back()==L'\r'||cleanPath.back()==L'\n'||cleanPath.back()==L' '||cleanPath.back()==L'\t'))cleanPath.pop_back();
@@ -1083,6 +1121,7 @@ LRESULT CALLBACK windowProcedure(HWND window,UINT message,WPARAM wParam,LPARAM l
         for(const wchar_t* item:{
             L"GDI – Fremdprojekt: Buildvertrag, Baseline, Strategie & Entwicklung (Read-Only)",
             L"GDI R17 – Neue Softwarefunktion aus Anforderung entwickeln (isoliert)",
+            L"GDI R18 – Bestehende Anwendung sicher verhaltensintegrieren (isoliert)",
             L"GDI – Autonomer ontogenetischer Entwicklungsplaner (Ziel -> eigenes Curriculum)",
             L"GDI – Autonome Entwicklungsintelligenz (.curriculum / Ontogenese)",
             L"GDI – Software aus Verhaltensbeispielen (.behavior)",
@@ -1185,7 +1224,7 @@ int selfTest() {
         }
     }
     if(foreignEx.empty()) foreignEx=examplePath(GuiMode::ForeignProject);
-    bool foreignOk=true,buildContractOk=true,strategyOk=true,r17Ok=true;
+    bool foreignOk=true,buildContractOk=true,strategyOk=true,r17Ok=true,r18Ok=true;
     if(!foreignEx.empty()&&std::filesystem::is_directory(foreignEx)) {
         const auto fpAnalysis=genomic::gpi::analyzeForeignCpp20Project(foreignEx);
         // A successful analysis of a healthy project may legitimately produce
@@ -1204,6 +1243,16 @@ int selfTest() {
         const auto architecture=genomic::gpi::synthesizeArchitectureChange(requirement,impact,contract);
         r17Ok=requirement.status==genomic::gpi::RequirementStatus::Clarified&&
               !impact.nodes.empty()&&architecture.executable;
+        std::filesystem::path r18Example;
+        for(const auto& root:{bin,bin.parent_path(),bin.parent_path().parent_path()}) {
+            const auto candidate=root/L"examples"/L"r18_csv_application";
+            if(std::filesystem::is_directory(candidate)){r18Example=candidate;break;}
+        }
+        if(!r18Example.empty()) {
+            const auto r18Contract=genomic::gpi::interpretBehavioralChangeRequirement("For CSV records skip invalid rows and write an error report.");
+            const auto r18Plan=genomic::gpi::synthesizeBehavioralIntegration(genomic::gpi::analyzeBehavioralProgram(r18Example),r18Contract);
+            r18Ok=r18Contract.status==genomic::gpi::BehavioralFactStatus::Verified&&r18Plan.executable;
+        }
     }
     const bool passed=accepted.supported&&accepted.contract.accepted&&!accepted.graph.empty()&&
            (!rejected.supported||!rejected.contract.accepted)&&
@@ -1212,7 +1261,7 @@ int selfTest() {
            example.functions.size()>=2&&!example.types.empty()&&!example.modules.empty()&&
            archGoal.functions.size()>=2&&!archGoal.types.empty()&&!archGoal.modules.empty()&&
            bpSpec.functions.size()>=2&&!bpSpec.types.empty()&&!bpSpec.modules.empty()&&
-           foreignOk&&buildContractOk&&strategyOk&&r17Ok;
+           foreignOk&&buildContractOk&&strategyOk&&r17Ok&&r18Ok;
     const auto executable=std::filesystem::absolute(executablePath());
     std::ofstream evidence(executableDirectory()/"gdi_gui_self_test.json",std::ios::binary|std::ios::trunc);
     evidence<<"{\n  \"format\": \"gdi-gui-self-test-v1\",\n"
@@ -1223,7 +1272,8 @@ int selfTest() {
             <<"  \"foreign_project_analysis\": "<<(foreignOk?"true":"false")<<",\n"
             <<"  \"build_contract_integration\": "<<(buildContractOk?"true":"false")<<",\n"
             <<"  \"strategy_planner_integration\": "<<(strategyOk?"true":"false")<<",\n"
-            <<"  \"r17_requirement_pipeline\": "<<(r17Ok?"true":"false")<<"\n}\n";
+            <<"  \"r17_requirement_pipeline\": "<<(r17Ok?"true":"false")<<",\n"
+            <<"  \"r18_behavioral_pipeline\": "<<(r18Ok?"true":"false")<<"\n}\n";
     return passed&&evidence?0:1;
 }
 }

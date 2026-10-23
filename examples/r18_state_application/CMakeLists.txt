@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(r18_state_application LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_executable(state_application src/main.cpp)
