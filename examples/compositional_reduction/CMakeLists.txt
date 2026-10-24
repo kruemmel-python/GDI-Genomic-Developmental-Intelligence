@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(compositional_reduction LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(compositional_reduction src/reduction.cpp tests/reduction_tests.cpp)
+target_include_directories(compositional_reduction PRIVATE src)
+add_test(NAME compositional_reduction_acceptance COMMAND compositional_reduction)

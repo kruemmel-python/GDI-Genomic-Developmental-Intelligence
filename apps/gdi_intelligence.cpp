@@ -7,6 +7,7 @@
 #include "gpi/autonomous_semantic_integration.hpp"
 #include "gpi/adaptive_experimentation.hpp"
 #include "gpi/inductive_synthesis.hpp"
+#include "gpi/compositional_synthesis.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -39,12 +40,12 @@ int main(int argc,char** argv) {
         std::filesystem::path curriculumPath,foreignProjectPath,workspace,compiler="g++",sandbox,componentMemory,repairMemory;
         std::filesystem::path krJava,krCompilerJar,strategyMemory,cmakeExecutable="cmake",ctestExecutable="ctest",msbuildExecutable,ninjaExecutable="ninja",makeExecutable="make";
         std::filesystem::path projectMemoryPath,devPrincipleMemoryPath;
-        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement,behavioralChangeRequirement,semanticIntegrationRequirement,adaptiveRequiredOutput,adaptiveArguments,adaptiveTrainingProjects,adaptiveModel,inductiveModel;
+        std::string objective,runtimeReadyMarker,generatorOverride,generatorPlatformOverride,windowsSdkOverride,developmentRequirement,behavioralChangeRequirement,semanticIntegrationRequirement,adaptiveRequiredOutput,adaptiveArguments,adaptiveTrainingProjects,adaptiveModel,inductiveModel,compositionalModel;
         bool controlExperiment=false;
         bool allowWriteback=false;
         bool krEndToEnd=false;
-        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false,r18Analyze=false,r18Plan=false,r18Execute=false,r19Analyze=false,r19Discover=false,r19Plan=false,r19Execute=false,adaptiveExecute=false,adaptiveTrain=false,inductiveSynthesize=false;
-        std::size_t maxCycles=8,adaptiveMaxAttempts=50,inductiveMaxCandidates=50;
+        bool contractOnly=false,baselineOnly=false,induceStrategy=false,executeStrategy=false,r17Execute=false,r18Analyze=false,r18Plan=false,r18Execute=false,r19Analyze=false,r19Discover=false,r19Plan=false,r19Execute=false,adaptiveExecute=false,adaptiveTrain=false,inductiveSynthesize=false,compositionalSynthesize=false;
+        std::size_t maxCycles=8,adaptiveMaxAttempts=50,inductiveMaxCandidates=50,compositionalMaxCandidates=50;
         for(int i=1;i<argc;++i) {
             const std::string key=argv[i];
             if(key=="--control-experiment") {
@@ -74,6 +75,7 @@ int main(int argc,char** argv) {
             if(key=="--adaptive-execute") { adaptiveExecute=true; continue; }
             if(key=="--adaptive-train") { adaptiveTrain=true; continue; }
             if(key=="--inductive-synthesize") { inductiveSynthesize=true; continue; }
+            if(key=="--compositional-synthesize") { compositionalSynthesize=true; continue; }
             if(i+1>=argc)throw std::invalid_argument("Every option requires a value");
             const std::string value=argv[++i];
             if(key=="--curriculum"||key=="--behavior")curriculumPath=value;
@@ -87,6 +89,7 @@ int main(int argc,char** argv) {
             else if(key=="--adaptive-training-projects")adaptiveTrainingProjects=value;
             else if(key=="--adaptive-model")adaptiveModel=value;
             else if(key=="--inductive-model")inductiveModel=value;
+            else if(key=="--compositional-model")compositionalModel=value;
             else if(key=="--workspace")workspace=value;
             else if(key=="--compiler")compiler=value;
             else if(key=="--sandbox")sandbox=value;
@@ -109,10 +112,11 @@ int main(int argc,char** argv) {
             else if(key=="--cycles")maxCycles=parseCycles(value);
             else if(key=="--adaptive-max-attempts")adaptiveMaxAttempts=parseAttempts(value);
             else if(key=="--inductive-max-candidates")inductiveMaxCandidates=parseAttempts(value);
+            else if(key=="--compositional-max-candidates")compositionalMaxCandidates=parseAttempts(value);
             else throw std::invalid_argument("Unknown option: "+key);
         }
-        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty()&&adaptiveRequiredOutput.empty()&&!adaptiveTrain&&!inductiveSynthesize)||workspace.empty()||
-           (developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty()&&adaptiveRequiredOutput.empty()&&!adaptiveTrain&&!inductiveSynthesize&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
+        if((curriculumPath.empty()&&objective.empty()&&foreignProjectPath.empty()&&developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty()&&adaptiveRequiredOutput.empty()&&!adaptiveTrain&&!inductiveSynthesize&&!compositionalSynthesize)||workspace.empty()||
+           (developmentRequirement.empty()&&behavioralChangeRequirement.empty()&&semanticIntegrationRequirement.empty()&&adaptiveRequiredOutput.empty()&&!adaptiveTrain&&!inductiveSynthesize&&!compositionalSynthesize&&!krEndToEnd&&!contractOnly&&!baselineOnly&&!induceStrategy&&!executeStrategy&&sandbox.empty()))
             throw std::invalid_argument("Either --foreign-project, --objective, --development-requirement, or --curriculum (or --behavior), plus --workspace are required");
 
         if(adaptiveTrain) {
@@ -147,6 +151,30 @@ int main(int argc,char** argv) {
             const auto result=genomic::gpi::runInductiveSynthesis(synthesis);
             std::cout<<"INDUCTIVE_ATTEMPTS="<<result.attempts.size()<<"\nINDUCTIVE_EXPERIENCE_USED="<<(result.experienceUsed?"YES":"NO")<<"\nINDUCTIVE_EXPERIENCE_PERSISTED="<<(result.experiencePersisted?"YES":"NO")<<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")<<"\nREASON="<<result.reason<<"\nRESULT="<<genomic::gpi::toString(result.outcome)<<"\nREPORT="<<result.reportPath.string()<<'\n';
             return result.outcome==genomic::gpi::InductiveSynthesisOutcome::Complete||result.outcome==genomic::gpi::InductiveSynthesisOutcome::AlreadySatisfied?0:4;
+        }
+
+        if(compositionalSynthesize) {
+            if(foreignProjectPath.empty()) throw std::invalid_argument("--compositional-synthesize requires --foreign-project");
+            genomic::gpi::CompositionalSynthesisConfig synthesis;
+            synthesis.protectedProject=std::filesystem::absolute(foreignProjectPath);
+            synthesis.isolatedWorkspace=std::filesystem::absolute(workspace);
+            synthesis.experienceStore=compositionalModel.empty()?synthesis.isolatedWorkspace.parent_path()/"compositional_experience.gdi":compositionalModel;
+            synthesis.maxCandidates=compositionalMaxCandidates;
+            synthesis.nativeBuild.originalProject=synthesis.protectedProject;
+            synthesis.nativeBuild.configuration="Release";
+            synthesis.nativeBuild.timeoutMilliseconds=600000;
+            synthesis.nativeBuild.runTests=true;
+            synthesis.nativeBuild.cmakeExecutable=cmakeExecutable;
+            synthesis.nativeBuild.ctestExecutable=ctestExecutable;
+            synthesis.nativeBuild.msbuildExecutable=msbuildExecutable;
+            synthesis.nativeBuild.ninjaExecutable=ninjaExecutable;
+            synthesis.nativeBuild.makeExecutable=makeExecutable;
+            synthesis.nativeBuild.generatorOverride=generatorOverride;
+            synthesis.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;
+            synthesis.nativeBuild.windowsSdkOverride=windowsSdkOverride;
+            const auto result=genomic::gpi::runCompositionalSynthesis(synthesis);
+            std::cout<<"COMPOSITIONAL_ATTEMPTS="<<result.attempts.size()<<"\nCOMPOSITIONAL_EXPERIENCE_USED="<<(result.experienceUsed?"YES":"NO")<<"\nCOMPOSITIONAL_EXPERIENCE_PERSISTED="<<(result.experiencePersisted?"YES":"NO")<<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")<<"\nREASON="<<result.reason<<"\nRESULT="<<genomic::gpi::toString(result.outcome)<<'\n';
+            return result.outcome==genomic::gpi::CompositionalSynthesisOutcome::Complete||result.outcome==genomic::gpi::CompositionalSynthesisOutcome::AlreadySatisfied?0:4;
         }
 
         if(!semanticIntegrationRequirement.empty()) {

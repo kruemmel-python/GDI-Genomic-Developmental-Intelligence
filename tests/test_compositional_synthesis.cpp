@@ -55,6 +55,16 @@ int main(int argc, char** argv) {
         require(branch.attempts.back().program.find("if (") != std::string::npos,
                 "branch task was not solved by a generated branch");
 
+        const auto reduction = run(root, workspace, memory, "compositional_reduction", argv[3]);
+        require(reduction.outcome == genomic::gpi::CompositionalSynthesisOutcome::Complete,
+                "stateful reduction synthesis failed: " + reduction.reason);
+        require(reduction.originalUntouched && reduction.experienceUsed && !reduction.attempts.empty()
+                    && reduction.attempts.back().testsPassed,
+                "stateful reduction lacks protected native evidence");
+        require(reduction.attempts.back().program.find("while (") != std::string::npos
+                    && reduction.attempts.back().program.find("state0 = state1") != std::string::npos,
+                "reduction task was not solved by generated mutable control flow");
+
         std::cout << "Compositional synthesis: PASSED\n";
         return 0;
     } catch (const std::exception& error) {

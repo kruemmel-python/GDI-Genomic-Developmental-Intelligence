@@ -133,14 +133,35 @@ std::vector<std::string> loopPrograms(const Stub& stub) {
     return result;
 }
 
+std::vector<std::string> reductionPrograms(const Stub& stub) {
+    std::vector<std::string> result;
+    for (const auto& left : stub.parameters) {
+        for (const auto& right : stub.parameters) {
+            if (left == right) continue;
+            for (const std::string operation : {"%", "-", "+"}) {
+                for (const std::string returned : {"state0", "state1"}) {
+                    result.push_back(
+                        "int state0 = " + left + "; int state1 = " + right
+                        + "; while (state1 != 0) { int next = state0 " + operation
+                        + " state1; state0 = state1; state1 = next; } return " + returned + ";");
+                }
+            }
+        }
+    }
+    return result;
+}
+
 std::vector<std::string> programs(const Stub& stub, const bool experience) {
     auto branches = branchPrograms(stub);
     auto loops = loopPrograms(stub);
+    auto reductions = reductionPrograms(stub);
     if (experience) {
         branches.insert(branches.end(), loops.begin(), loops.end());
+        branches.insert(branches.end(), reductions.begin(), reductions.end());
         return branches;
     }
     loops.insert(loops.end(), branches.begin(), branches.end());
+    loops.insert(loops.end(), reductions.begin(), reductions.end());
     return loops;
 }
 
