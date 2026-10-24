@@ -3,8 +3,10 @@
 #include "gpi/filesystem_safety.hpp"
 #include "gpi/foreign_project_intelligence.hpp"
 
+#include <algorithm>
 #include <cctype>
 #include <fstream>
+#include <map>
 #include <stdexcept>
 
 namespace genomic::gpi {
@@ -74,6 +76,8 @@ struct Stub {
     std::size_t end{};
     std::vector<std::string> parameters;
     std::vector<std::string> vectorParameters;
+    std::vector<std::string> ownedVectorParameters;
+    std::vector<std::string> uniquePointerParameters;
     std::string functionName;
 };
 
@@ -100,23 +104,60 @@ std::vector<std::string> vectorParameterNames(const std::string& parameters) {
     return result;
 }
 
+std::vector<std::string> parameterNamesContaining(const std::string& parameters, const std::string& token) {
+    std::vector<std::string> result;
+    std::size_t begin{};
+    while (begin < parameters.size()) {
+        const auto end = parameters.find(',', begin);
+        const auto part = parameters.substr(begin, end == std::string::npos ? end : end - begin);
+        if (part.find(token) != std::string::npos) {
+            const auto names = parameterNames(part);
+            if (!names.empty()) result.push_back(names.front());
+        }
+        if (end == std::string::npos) break;
+        begin = end + 1;
+    }
+    return result;
+}
+
+std::vector<std::string> parameterNamesContainingBoth(const std::string& parameters,
+                                                       const std::string& first,
+                                                       const std::string& second) {
+    std::vector<std::string> result;
+    std::size_t begin{};
+    while (begin < parameters.size()) {
+        const auto end = parameters.find(',', begin);
+        const auto part = parameters.substr(begin, end == std::string::npos ? end : end - begin);
+        if (part.find(first) != std::string::npos && part.find(second) != std::string::npos) {
+            const auto names = parameterNames(part);
+            if (!names.empty()) result.push_back(names.front());
+        }
+        if (end == std::string::npos) break;
+        begin = end + 1;
+    }
+    return result;
+}
+
 std::vector<Stub> discoverStubs(const std::filesystem::path& root) {
     std::vector<Stub> result;
     for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
         if (!entry.is_regular_file() || !isCpp(entry.path())) continue;
         const auto source = readFile(entry.path());
+        for (const std::string marker : {"return 0;", "return nullptr;"}) {
         std::size_t position{};
-        while ((position = source.find("return 0;", position)) != std::string::npos) {
+        while ((position = source.find(marker, position)) != std::string::npos) {
             const auto brace = source.rfind('{', position);
             const auto close = source.rfind(')', brace);
             const auto open = close == std::string::npos ? std::string::npos : matchingOpenParen(source, close);
             if (brace != std::string::npos && open != std::string::npos && source.substr(open, brace - open).find("main") == std::string::npos) {
                 const auto parameterText = source.substr(open + 1, close - open - 1);
                 const auto parameters = parameterNames(parameterText);
-                if (!parameters.empty()) result.push_back({entry.path(), position, position + 9, parameters,
-                    vectorParameterNames(parameterText), functionNameBefore(source, open)});
+                if (!parameters.empty()) result.push_back({entry.path(), position, position + marker.size(), parameters,
+                    vectorParameterNames(parameterText), parameterNamesContainingBoth(parameterText, "vector", "unique_ptr")
+                        , parameterNamesContaining(parameterText, "unique_ptr"), functionNameBefore(source, open)});
             }
-            position += 9;
+            position += marker.size();
+        }
         }
     }
     return result;
@@ -180,9 +221,20 @@ std::vector<std::string> reductionPrograms(const Stub& stub) {
 
 std::vector<std::string> vectorPrograms(const Stub& stub) {
     std::vector<std::string> result;
+    for (const auto& container : stub.ownedVectorParameters) {
+        result.push_back("int result = 0; for (const auto& item : " + container + ") { if (item) { result += *item; } } return result;");
+    }
     for (const auto& container : stub.vectorParameters) {
         result.push_back("int result = 0; for (const int item : " + container + ") { result += item; } return result;");
         result.push_back("int result = 0; for (const int item : " + container + ") { if (item > 0) { ++result; } } return result;");
+    }
+    return result;
+}
+
+std::vector<std::string> uniquePointerPrograms(const Stub& stub) {
+    std::vector<std::string> result;
+    for (const auto& pointer : stub.uniquePointerParameters) {
+        result.push_back("if (" + pointer + ") { return std::make_unique<int>(*" + pointer + "); } return nullptr;");
     }
     return result;
 }
@@ -201,7 +253,9 @@ std::vector<std::string> programs(const Stub& stub, const bool experience) {
     auto loops = loopPrograms(stub);
     auto reductions = reductionPrograms(stub);
     auto vectors = vectorPrograms(stub);
+    auto pointers = uniquePointerPrograms(stub);
     auto recursions = recursivePrograms(stub);
+    if (!pointers.empty() && stub.vectorParameters.empty()) return pointers;
     if (!vectors.empty()) {
         vectors.insert(vectors.end(), branches.begin(), branches.end());
         vectors.insert(vectors.end(), loops.begin(), loops.end());
@@ -253,33 +307,66 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
             result.reason = "baseline_tests_already_satisfied";
         } else {
             result.experienceUsed = hasExperience(config.experienceStore);
-            std::size_t count{};
-            for (const auto& stub : discoverStubs(original)) {
-                for (const auto& program : programs(stub, result.experienceUsed)) {
-                    if (++count > config.maxCandidates) break;
-                    const auto candidate = workspace / ("candidate_" + std::to_string(count));
-                    copyTree(original, candidate);
-                    const auto relative = std::filesystem::relative(stub.source, original);
-                    auto source = readFile(candidate / relative);
-                    source.replace(stub.begin, stub.end - stub.begin, program);
-                    writeFile(candidate / relative, source);
-                    NativeBuildConfig candidateConfig = config.nativeBuild;
-                    candidateConfig.originalProject = candidate;
-                    candidateConfig.isolatedWorkspace = workspace / ("candidate_build_" + std::to_string(count));
-                    const auto evidence = executeNativeBuild(discoverBuildContract(candidate), candidateConfig);
-                    result.attempts.push_back({relative, program, evidence.built, evidence.testsPassed});
-                    if (evidence.built && evidence.testsPassed) {
-                        result.developedProject = candidate;
-                        result.outcome = CompositionalSynthesisOutcome::Complete;
-                        result.reason = "compositional_program_verified";
-                        remember(config.experienceStore, "success", program);
-                        result.experiencePersisted = !config.experienceStore.empty();
-                        result.originalUntouched = before == computeDirectoryTreeHash(original);
-                        return result;
+            auto stubs = discoverStubs(original);
+            std::sort(stubs.begin(), stubs.end(), [](const Stub& left, const Stub& right) {
+                return left.source == right.source ? left.begin < right.begin : left.source.string() < right.source.string();
+            });
+            using Patch = std::pair<const Stub*, std::string>;
+            using Plan = std::vector<Patch>;
+            std::vector<Plan> plans(1);
+            for (const auto& stub : stubs) {
+                const auto choices = programs(stub, result.experienceUsed);
+                std::vector<Plan> next;
+                for (const auto& plan : plans) {
+                    for (const auto& program : choices) {
+                        if (next.size() == config.maxCandidates) break;
+                        auto expanded = plan;
+                        expanded.emplace_back(&stub, program);
+                        next.push_back(std::move(expanded));
                     }
-                    remember(config.experienceStore, "failed", program);
+                    if (next.size() == config.maxCandidates) break;
                 }
-                if (count >= config.maxCandidates) break;
+                plans = std::move(next);
+                if (plans.empty()) break;
+            }
+            std::size_t count{};
+            for (const auto& plan : plans) {
+                ++count;
+                const auto candidate = workspace / ("candidate_" + std::to_string(count));
+                copyTree(original, candidate);
+                std::map<std::filesystem::path, std::vector<const Patch*>> perFile;
+                std::string program;
+                for (const auto& patch : plan) {
+                    perFile[std::filesystem::relative(patch.first->source, original)].push_back(&patch);
+                    if (!program.empty()) program += "\n---\n";
+                    program += patch.second;
+                }
+                for (auto& [relative, patches] : perFile) {
+                    std::sort(patches.begin(), patches.end(), [](const Patch* left, const Patch* right) {
+                        return left->first->begin > right->first->begin;
+                    });
+                    auto source = readFile(candidate / relative);
+                    for (const auto* patch : patches) {
+                        source.replace(patch->first->begin, patch->first->end - patch->first->begin, patch->second);
+                    }
+                    writeFile(candidate / relative, source);
+                }
+                NativeBuildConfig candidateConfig = config.nativeBuild;
+                candidateConfig.originalProject = candidate;
+                candidateConfig.isolatedWorkspace = workspace / ("candidate_build_" + std::to_string(count));
+                const auto evidence = executeNativeBuild(discoverBuildContract(candidate), candidateConfig);
+                const auto relative = std::filesystem::relative(plan.front().first->source, original);
+                result.attempts.push_back({relative, program, evidence.built, evidence.testsPassed});
+                if (evidence.built && evidence.testsPassed) {
+                    result.developedProject = candidate;
+                    result.outcome = CompositionalSynthesisOutcome::Complete;
+                    result.reason = "compositional_program_verified";
+                    remember(config.experienceStore, "success", program);
+                    result.experiencePersisted = !config.experienceStore.empty();
+                    result.originalUntouched = before == computeDirectoryTreeHash(original);
+                    return result;
+                }
+                remember(config.experienceStore, "failed", program);
             }
             result.outcome = CompositionalSynthesisOutcome::Blocked;
             result.reason = "compositional_grammar_exhausted";

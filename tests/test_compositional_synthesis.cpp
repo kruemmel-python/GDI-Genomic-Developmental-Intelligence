@@ -83,6 +83,22 @@ int main(int argc, char** argv) {
         require(recursive.attempts.back().program.find("factorialWeight(") != std::string::npos,
                 "recursive task was not solved by a generated self-call");
 
+        const auto multi = run(root, workspace, memory, "compositional_multifunction", argv[3]);
+        require(multi.outcome == genomic::gpi::CompositionalSynthesisOutcome::Complete,
+                "joint multi-function synthesis failed: " + multi.reason);
+        require(multi.originalUntouched && !multi.attempts.empty() && multi.attempts.back().testsPassed,
+                "joint multi-function result lacks protected native evidence");
+        require(multi.attempts.back().program.find("---") != std::string::npos,
+                "multi-function plan did not contain multiple generated programs");
+
+        const auto ownership = run(root, workspace, memory, "compositional_ownership", argv[3]);
+        require(ownership.outcome == genomic::gpi::CompositionalSynthesisOutcome::Complete,
+                "unique ownership synthesis failed: " + ownership.reason);
+        require(ownership.originalUntouched && !ownership.attempts.empty() && ownership.attempts.back().testsPassed,
+                "unique ownership result lacks protected native evidence");
+        require(ownership.attempts.back().program.find("make_unique") != std::string::npos,
+                "ownership task was not solved by generated ownership-safe code");
+
         std::cout << "Compositional synthesis: PASSED\n";
         return 0;
     } catch (const std::exception& error) {

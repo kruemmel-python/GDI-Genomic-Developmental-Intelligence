@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(compositional_ownership LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(compositional_ownership src/ownership.cpp tests/ownership_tests.cpp)
+target_include_directories(compositional_ownership PRIVATE src)
+add_test(NAME compositional_ownership_acceptance COMMAND compositional_ownership)

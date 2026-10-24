@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(compositional_multifunction LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(compositional_multifunction src/workflow.cpp tests/workflow_tests.cpp)
+target_include_directories(compositional_multifunction PRIVATE src)
+add_test(NAME compositional_multifunction_acceptance COMMAND compositional_multifunction)
