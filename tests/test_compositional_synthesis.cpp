@@ -65,6 +65,24 @@ int main(int argc, char** argv) {
                     && reduction.attempts.back().program.find("state0 = state1") != std::string::npos,
                 "reduction task was not solved by generated mutable control flow");
 
+        const auto container = run(root, workspace, memory, "compositional_container", argv[3]);
+        require(container.outcome == genomic::gpi::CompositionalSynthesisOutcome::Complete,
+                "container traversal synthesis failed: " + container.reason);
+        require(container.originalUntouched && !container.attempts.empty()
+                    && container.attempts.back().testsPassed,
+                "container traversal lacks protected native evidence");
+        require(container.attempts.back().program.find("for (const int item") != std::string::npos,
+                "container task was not solved by a generated traversal");
+
+        const auto recursive = run(root, workspace, memory, "compositional_recursive", argv[3]);
+        require(recursive.outcome == genomic::gpi::CompositionalSynthesisOutcome::Complete,
+                "recursive synthesis failed: " + recursive.reason);
+        require(recursive.originalUntouched && recursive.experienceUsed && !recursive.attempts.empty()
+                    && recursive.attempts.back().testsPassed,
+                "recursive result lacks protected native evidence");
+        require(recursive.attempts.back().program.find("factorialWeight(") != std::string::npos,
+                "recursive task was not solved by a generated self-call");
+
         std::cout << "Compositional synthesis: PASSED\n";
         return 0;
     } catch (const std::exception& error) {

@@ -73,7 +73,32 @@ struct Stub {
     std::size_t begin{};
     std::size_t end{};
     std::vector<std::string> parameters;
+    std::vector<std::string> vectorParameters;
+    std::string functionName;
 };
+
+std::string functionNameBefore(const std::string& source, std::size_t open) {
+    while (open > 0 && std::isspace(static_cast<unsigned char>(source[open - 1]))) --open;
+    const auto end = open;
+    while (open > 0 && (std::isalnum(static_cast<unsigned char>(source[open - 1])) || source[open - 1] == '_')) --open;
+    return source.substr(open, end - open);
+}
+
+std::vector<std::string> vectorParameterNames(const std::string& parameters) {
+    std::vector<std::string> result;
+    std::size_t begin{};
+    while (begin < parameters.size()) {
+        const auto end = parameters.find(',', begin);
+        const auto part = parameters.substr(begin, end == std::string::npos ? end : end - begin);
+        if (part.find("vector") != std::string::npos) {
+            const auto names = parameterNames(part);
+            if (!names.empty()) result.push_back(names.front());
+        }
+        if (end == std::string::npos) break;
+        begin = end + 1;
+    }
+    return result;
+}
 
 std::vector<Stub> discoverStubs(const std::filesystem::path& root) {
     std::vector<Stub> result;
@@ -86,8 +111,10 @@ std::vector<Stub> discoverStubs(const std::filesystem::path& root) {
             const auto close = source.rfind(')', brace);
             const auto open = close == std::string::npos ? std::string::npos : matchingOpenParen(source, close);
             if (brace != std::string::npos && open != std::string::npos && source.substr(open, brace - open).find("main") == std::string::npos) {
-                const auto parameters = parameterNames(source.substr(open + 1, close - open - 1));
-                if (!parameters.empty()) result.push_back({entry.path(), position, position + 9, parameters});
+                const auto parameterText = source.substr(open + 1, close - open - 1);
+                const auto parameters = parameterNames(parameterText);
+                if (!parameters.empty()) result.push_back({entry.path(), position, position + 9, parameters,
+                    vectorParameterNames(parameterText), functionNameBefore(source, open)});
             }
             position += 9;
         }
@@ -151,17 +178,44 @@ std::vector<std::string> reductionPrograms(const Stub& stub) {
     return result;
 }
 
+std::vector<std::string> vectorPrograms(const Stub& stub) {
+    std::vector<std::string> result;
+    for (const auto& container : stub.vectorParameters) {
+        result.push_back("int result = 0; for (const int item : " + container + ") { result += item; } return result;");
+        result.push_back("int result = 0; for (const int item : " + container + ") { if (item > 0) { ++result; } } return result;");
+    }
+    return result;
+}
+
+std::vector<std::string> recursivePrograms(const Stub& stub) {
+    if (stub.parameters.size() != 1 || stub.functionName.empty() || !stub.vectorParameters.empty()) return {};
+    const auto& value = stub.parameters.front();
+    return {
+        "if (" + value + " <= 1) { return 1; } return " + value + " * " + stub.functionName + "(" + value + " - 1);",
+        "if (" + value + " <= 1) { return " + value + "; } return " + stub.functionName + "(" + value + " - 1) + " + stub.functionName + "(" + value + " - 2);"
+    };
+}
+
 std::vector<std::string> programs(const Stub& stub, const bool experience) {
     auto branches = branchPrograms(stub);
     auto loops = loopPrograms(stub);
     auto reductions = reductionPrograms(stub);
+    auto vectors = vectorPrograms(stub);
+    auto recursions = recursivePrograms(stub);
+    if (!vectors.empty()) {
+        vectors.insert(vectors.end(), branches.begin(), branches.end());
+        vectors.insert(vectors.end(), loops.begin(), loops.end());
+        return vectors;
+    }
     if (experience) {
         branches.insert(branches.end(), loops.begin(), loops.end());
         branches.insert(branches.end(), reductions.begin(), reductions.end());
+        branches.insert(branches.end(), recursions.begin(), recursions.end());
         return branches;
     }
     loops.insert(loops.end(), branches.begin(), branches.end());
     loops.insert(loops.end(), reductions.begin(), reductions.end());
+    loops.insert(loops.end(), recursions.begin(), recursions.end());
     return loops;
 }
 

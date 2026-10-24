@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(compositional_recursive LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(compositional_recursive src/recursive.cpp tests/recursive_tests.cpp)
+target_include_directories(compositional_recursive PRIVATE src)
+add_test(NAME compositional_recursive_acceptance COMMAND compositional_recursive)

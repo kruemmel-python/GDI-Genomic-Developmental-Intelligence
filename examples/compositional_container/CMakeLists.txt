@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(compositional_container LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(compositional_container src/container.cpp tests/container_tests.cpp)
+target_include_directories(compositional_container PRIVATE src)
+add_test(NAME compositional_container_acceptance COMMAND compositional_container)
