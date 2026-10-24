@@ -173,7 +173,7 @@ int main(int argc,char** argv) {
             synthesis.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;
             synthesis.nativeBuild.windowsSdkOverride=windowsSdkOverride;
             const auto result=genomic::gpi::runCompositionalSynthesis(synthesis);
-            std::cout<<"COMPOSITIONAL_ATTEMPTS="<<result.attempts.size()<<"\nCOMPOSITIONAL_EXPERIENCE_USED="<<(result.experienceUsed?"YES":"NO")<<"\nCOMPOSITIONAL_EXPERIENCE_PERSISTED="<<(result.experiencePersisted?"YES":"NO")<<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")<<"\nREASON="<<result.reason<<"\nRESULT="<<genomic::gpi::toString(result.outcome)<<'\n';
+            std::cout<<"COMPOSITIONAL_ATTEMPTS="<<result.attempts.size()<<"\nCOMPOSITIONAL_EXPERIENCE_USED="<<(result.experienceUsed?"YES":"NO")<<"\nCOMPOSITIONAL_EXPERIENCE_PERSISTED="<<(result.experiencePersisted?"YES":"NO")<<"\nCOMPOSITIONAL_ELAPSED_MS="<<result.elapsedMilliseconds<<"\nCOMPOSITIONAL_TIME_LIMIT_REACHED="<<(result.timeLimitReached?"YES":"NO")<<"\nORIGINAL_UNTOUCHED="<<(result.originalUntouched?"YES":"NO")<<"\nREASON="<<result.reason<<"\nRESULT="<<genomic::gpi::toString(result.outcome)<<'\n';
             return result.outcome==genomic::gpi::CompositionalSynthesisOutcome::Complete||result.outcome==genomic::gpi::CompositionalSynthesisOutcome::AlreadySatisfied?0:4;
         }
 

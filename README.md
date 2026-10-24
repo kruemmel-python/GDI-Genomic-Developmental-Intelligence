@@ -16,14 +16,16 @@ GDI never edits an imported project in place. Every attempted change is created 
 | Persistent development experience | Stores successful and failed, provenance-bound attempts and uses them to guide later work. |
 | Adaptive experiments | Tests bounded, observable candidate changes in isolated workspaces and preserves negative evidence. |
 | Inductive expression synthesis | Discovers safe integer return stubs, derives variables/constants from the project, generates candidate expressions, and accepts only candidates proven by the project’s own tests. |
+| Compositional program synthesis | Constructs complete C++ bodies from typed control-flow primitives: branches, loops, mutable local state, reduction, vector traversal, structural recursion and ownership-safe smart-pointer return paths. |
+| Joint interface plans | Synthesizes and verifies bounded, atomic plans spanning multiple implementation stubs in one candidate project. |
 
-The inductive synthesizer is deliberately evidence-led. It does not contain project names, function names or a prewritten solution for the target project. It forms candidate programs during the run, recompiles and executes each candidate, and persists the verified expression pattern for later prioritisation.
+The generative subsystem is evidence-led. It derives parameter names, supported container/ownership shapes and self-call targets from the imported project. It does not contain project names, function names or a stored target algorithm. Concrete programs are formed during the run, rebuilt and executed against the target project's own tests; successful and failed candidate structures are persisted for later prioritisation.
 
 ## Safety and research boundaries
 
 GDI is fail-closed. Ambiguous integration points, an unbuildable baseline, missing acceptance evidence, unsafe workspaces or an exhausted supported grammar produce a blocked result—not a speculative patch.
 
-The current synthesizer is not a claim of universal program synthesis. Its verified scope is bounded integer-expression synthesis at identifiable return stubs with a working native test oracle. Extending that scope requires additional general synthesis grammars and semantic evidence, not project-specific rules.
+The current synthesizer is not a claim of universal program synthesis. Its verified scope covers bounded scalar control flow, `std::vector<int>` traversal, selected `std::unique_ptr<int>` ownership patterns, structural recursion and joint plans over a bounded number of discoverable implementation stubs. Arbitrary object graphs, unconstrained templates, exception protocols, arbitrary natural-language requirements and unbounded architectural search remain unsupported and fail closed.
 
 ## Build
 
@@ -45,14 +47,14 @@ cmake --build build -j 4
 ctest --test-dir build --output-on-failure
 ```
 
-## Inductive synthesis workflow
+## Generative synthesis workflow
 
 ```text
 Protected project + existing native tests
   → isolated baseline build
   → discover eligible implementation stub
-  → derive local variables and constants
-  → create bounded candidate programs
+  → derive local types, variables and permissible program structures
+  → create bounded single- or multi-function candidate plans
   → compile + run the project’s own tests per candidate
   → retain only verified implementation and experience
 ```
@@ -62,21 +64,21 @@ Run it through the GDI executable:
 ```powershell
 gdi_intelligence --foreign-project D:\path\to\project `
   --workspace D:\external-workspace `
-  --inductive-synthesize
+  --compositional-synthesize
 ```
 
 Optional persistence and budget controls:
 
 ```text
---inductive-model D:\models\gdi_inductive_experience.gdi
---inductive-max-candidates 50
+--compositional-model D:\models\gdi_compositional_experience.gdi
+--compositional-max-candidates 50
 ```
 
-The protected project is never the workspace. The command returns a non-zero result for `BLOCKED` or `FAILED`; generated evidence remains in the external workspace.
+The protected project is never the workspace. Compositional synthesis has a hard 25-minute total time budget. The remaining budget is propagated to configure/build/test processes; expiry returns `BLOCKED` with `compositional_time_budget_exhausted`. The command returns a non-zero result for `BLOCKED` or `FAILED`; generated evidence remains in the external workspace.
 
 ## Verification
 
-`GDIInductiveSynthesisTests` uses two independent CMake projects with different function and parameter names. The first induces and verifies a previously stubbed arithmetic implementation. The second uses persisted experience to prioritise the learned expression family, while still compiling and running its own tests.
+The synthesis fixtures cover arithmetic induction, branches, loops, mutable state reduction, container traversal, recursion, smart-pointer ownership and a joint two-function implementation plan. All acceptance decisions are native compiler and CTest results from isolated project copies.
 
 Project reports and reproducible campaign evidence are kept under [`GDI_VERIFICATION_REPORT`](GDI_VERIFICATION_REPORT).
 

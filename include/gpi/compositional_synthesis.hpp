@@ -16,6 +16,7 @@ struct CompositionalSynthesisConfig {
     std::filesystem::path experienceStore;
     NativeBuildConfig nativeBuild;
     std::size_t maxCandidates{50};
+    std::size_t timeLimitMilliseconds{1'500'000};
 };
 
 struct CompositionalSynthesisAttempt {
@@ -33,6 +34,8 @@ struct CompositionalSynthesisResult {
     bool originalUntouched{};
     bool experienceUsed{};
     bool experiencePersisted{};
+    bool timeLimitReached{};
+    std::size_t elapsedMilliseconds{};
     std::string reason;
 };
 

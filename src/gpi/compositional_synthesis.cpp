@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <map>
 #include <stdexcept>
@@ -286,10 +287,22 @@ const char* toString(const CompositionalSynthesisOutcome outcome) noexcept {
 }
 
 CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthesisConfig& config) {
-    if (config.protectedProject.empty() || config.isolatedWorkspace.empty() || config.maxCandidates == 0 || config.maxCandidates > 50) {
-        throw std::invalid_argument("compositional synthesis requires 1..50 candidates");
+    if (config.protectedProject.empty() || config.isolatedWorkspace.empty() || config.maxCandidates == 0 || config.maxCandidates > 50
+        || config.timeLimitMilliseconds == 0 || config.timeLimitMilliseconds > 1'500'000) {
+        throw std::invalid_argument("compositional synthesis requires 1..50 candidates and a 1..25 minute time limit");
     }
     CompositionalSynthesisResult result;
+    const auto started = std::chrono::steady_clock::now();
+    const auto elapsed = [&]() {
+        return static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - started).count());
+    };
+    const auto boundedBuildTimeout = [&]() {
+        const auto spent = elapsed();
+        if (spent >= config.timeLimitMilliseconds) return std::size_t{};
+        const auto remaining = config.timeLimitMilliseconds - spent;
+        return std::min(config.nativeBuild.timeoutMilliseconds, std::max<std::size_t>(1, remaining / 3));
+    };
     const auto original = std::filesystem::absolute(config.protectedProject);
     const auto workspace = std::filesystem::absolute(config.isolatedWorkspace);
     const auto before = computeDirectoryTreeHash(original);
@@ -298,6 +311,15 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
         NativeBuildConfig baselineConfig = config.nativeBuild;
         baselineConfig.originalProject = original;
         baselineConfig.isolatedWorkspace = workspace / "baseline";
+        baselineConfig.timeoutMilliseconds = boundedBuildTimeout();
+        if (baselineConfig.timeoutMilliseconds == 0) {
+            result.outcome = CompositionalSynthesisOutcome::Blocked;
+            result.timeLimitReached = true;
+            result.reason = "compositional_time_budget_exhausted";
+            result.originalUntouched = before == computeDirectoryTreeHash(original);
+            result.elapsedMilliseconds = elapsed();
+            return result;
+        }
         result.baseline = executeNativeBuild(discoverBuildContract(original), baselineConfig);
         if (!result.baseline.built) {
             result.outcome = CompositionalSynthesisOutcome::Blocked;
@@ -331,6 +353,13 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
             }
             std::size_t count{};
             for (const auto& plan : plans) {
+                const auto timeout = boundedBuildTimeout();
+                if (timeout == 0) {
+                    result.outcome = CompositionalSynthesisOutcome::Blocked;
+                    result.timeLimitReached = true;
+                    result.reason = "compositional_time_budget_exhausted";
+                    break;
+                }
                 ++count;
                 const auto candidate = workspace / ("candidate_" + std::to_string(count));
                 copyTree(original, candidate);
@@ -354,6 +383,7 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
                 NativeBuildConfig candidateConfig = config.nativeBuild;
                 candidateConfig.originalProject = candidate;
                 candidateConfig.isolatedWorkspace = workspace / ("candidate_build_" + std::to_string(count));
+                candidateConfig.timeoutMilliseconds = timeout;
                 const auto evidence = executeNativeBuild(discoverBuildContract(candidate), candidateConfig);
                 const auto relative = std::filesystem::relative(plan.front().first->source, original);
                 result.attempts.push_back({relative, program, evidence.built, evidence.testsPassed});
@@ -364,18 +394,22 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
                     remember(config.experienceStore, "success", program);
                     result.experiencePersisted = !config.experienceStore.empty();
                     result.originalUntouched = before == computeDirectoryTreeHash(original);
+                    result.elapsedMilliseconds = elapsed();
                     return result;
                 }
                 remember(config.experienceStore, "failed", program);
             }
-            result.outcome = CompositionalSynthesisOutcome::Blocked;
-            result.reason = "compositional_grammar_exhausted";
+            if (!result.timeLimitReached) {
+                result.outcome = CompositionalSynthesisOutcome::Blocked;
+                result.reason = "compositional_grammar_exhausted";
+            }
         }
     } catch (const std::exception& error) {
         result.outcome = CompositionalSynthesisOutcome::Failed;
         result.reason = error.what();
     }
     result.originalUntouched = before == computeDirectoryTreeHash(original);
+    result.elapsedMilliseconds = elapsed();
     return result;
 }
 
