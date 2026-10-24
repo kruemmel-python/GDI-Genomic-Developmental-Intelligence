@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(inductive_beta LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+enable_testing()
+add_executable(inductive_beta src/pressure.cpp tests/pressure_tests.cpp)
+target_include_directories(inductive_beta PRIVATE src)
+add_test(NAME inductive_beta_acceptance COMMAND inductive_beta)

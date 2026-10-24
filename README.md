@@ -1,74 +1,38 @@
 # GDI — Genomic Developmental Intelligence
 
-**Release 1.7.0 · Windows x64 · C++20 · fail-closed autonomous software engineering research platform**
+**Windows x64 · C++20 · protected-project autonomous development research platform**
 
-GDI is a native C++20 system for investigating how software projects can be discovered, analysed, changed and verified with explicit safety boundaries. It combines an immutable synthetic genome with build-contract reconstruction, semantic program modelling, isolated transformation, native compiler/linker validation and persistent, provenance-bound development evidence.
+GDI is a native C++20 research system for safely analysing, changing and verifying software projects. Its architecture combines an immutable synthetic genome, regulatory capability activation, build-contract reconstruction, semantic project analysis, isolated experimentation and persistent experience.
 
-GDI reports success only when the real project build and the declared acceptance evidence succeed. Ambiguous, unsupported or insufficiently evidenced requests are blocked instead of receiving a speculative patch.
+GDI never edits an imported project in place. Every attempted change is created in a separate workspace, compiled and tested with the project’s real build contract. A result is reported as successful only when the relevant build and behavioural evidence succeed.
 
-> Scope matters. GDI 1.7.0 proves bounded capabilities on real toolchains; it does not claim universal understanding or repair of arbitrary software.
+## Current capabilities
 
-## What is in this release
+| Capability | Evidence requirement |
+| --- | --- |
+| Build-contract reconstruction | Detects supported CMake, MSBuild, Ninja, Make and direct compiler workflows, targets and test commands. |
+| Protected foreign-project analysis | Creates isolated copies, validates paths, rejects unsafe links and compares original-tree SHA-256 manifests. |
+| Semantic integration analysis | Establishes source, call-flow and state evidence before selecting a supported integration point. |
+| Persistent development experience | Stores successful and failed, provenance-bound attempts and uses them to guide later work. |
+| Adaptive experiments | Tests bounded, observable candidate changes in isolated workspaces and preserves negative evidence. |
+| Inductive expression synthesis | Discovers safe integer return stubs, derives variables/constants from the project, generates candidate expressions, and accepts only candidates proven by the project’s own tests. |
 
-| Capability | What it does | Safety boundary |
-| --- | --- | --- |
-| R15 BuildContract | Reconstructs CMake, MSBuild, Ninja, Make and direct build contracts; identifies targets, compiler, SDK and tests. | Native baselines run only in isolated workspaces. |
-| R16 DevelopmentStrategy | Selects and persists authorised development operator graphs with negative learning. | Incompatible or cyclic strategies are rejected. |
-| R17 ASEI | Converts supported requirements into impact/architecture plans and isolated C++ components. | Only verified capability classes may be synthesised. |
-| R18 Behavioural evolution | Analyses bounded behavioural change contracts and validates them through native execution. | Original projects are hash-checked before and after. |
-| R19 semantic integration | Builds a source/call-flow model, discovers evidence-backed integration points and verifies generated changes end-to-end. | An unresolved or non-unique candidate yields `BLOCKED`. |
-| Language-neutral requirement concepts | Maps German and English requirement expressions onto the same canonical concepts before source analysis. | This is a versioned language-pack layer, not a claim of universal natural-language understanding. |
+The inductive synthesizer is deliberately evidence-led. It does not contain project names, function names or a prewritten solution for the target project. It forms candidate programs during the run, recompiles and executes each candidate, and persists the verified expression pattern for later prioritisation.
 
-## R19 workflow
+## Safety and research boundaries
 
-```text
-Requirement text
-  → canonical semantic concepts
-  → R15 build contract + protected baseline
-  → semantic program / call-flow model
-  → behavioural delta and candidate ranking
-  → genome-authorised strategy
-  → isolated source transformation
-  → native build, linker, CTest and runtime acceptance
-  → integrity proof and persistent evidence
-```
+GDI is fail-closed. Ambiguous integration points, an unbuildable baseline, missing acceptance evidence, unsafe workspaces or an exhausted supported grammar produce a blocked result—not a speculative patch.
 
-The current verified R19 transformation classes are deliberately narrow:
+The current synthesizer is not a claim of universal program synthesis. Its verified scope is bounded integer-expression synthesis at identifiable return stubs with a working native test oracle. Extending that scope requires additional general synthesis grammars and semantic evidence, not project-specific rules.
 
-| Capability | Required evidence | Runtime proof |
-| --- | --- | --- |
-| `record_validation` | Input loop, normal processor path and dedicated error sink | Valid records retained; invalid records excluded and reported. |
-| `state_resume_validation` | State loader and a resolved entrypoint-to-process transition | Valid state starts normally; invalid state is rejected. |
+## Build
 
-German and English requests such as `ungueltige Datensaetze protokollieren` / `report invalid records` and `beschaedigten Zustand ablehnen` / `reject corrupt state` are projected onto these same concepts. The project code is analysed independently of the human wording.
-
-## Proven verification and blind-transfer results
-
-The repository contains reproducible positive fixtures for the bounded R19 classes. The independent transfer campaigns also document correct blocking rather than artificial success:
-
-* **Chroniken der Gegenwelt:** native C++17 baseline built and tested; a crafting-material requirement was blocked because no authorised crafting/inventory transformation exists.
-* **TATARUS CIVITAS:** native C++20 baseline built, CTest passed and the real CLI reference run completed; the original R19 run blocked. After the 1.7.0 language-concept extension, the German state request is recognised as `state_resume_validation`, but is still blocked because the project does not expose R19's proven state-loader-to-process pattern.
-
-These results are evidence of the boundaries as well as of the capabilities. They are not presented as successful autonomous changes.
-
-## Safety model
-
-* Foreign project roots are treated as protected inputs.
-* Work happens in external, isolated copies only.
-* SHA-256 manifests establish original-tree integrity before and after a run.
-* Path validation rejects unsafe workspace placement and traversal.
-* Symlink/junction-sensitive import and copy logic is fail-closed.
-* Generated build artefacts are protected; writeback requires explicit authorisation.
-* Transformations are provenance- and digest-bound, then recompiled and re-tested.
-
-## Build on Windows
-
-Validated reference toolchain:
+Validated toolchain:
 
 ```text
 Compiler: D:\android_project\windows\toolchain\bin\g++.exe  (GCC 16.1.0)
-Build tool: D:\android_project\windows\toolchain\bin\mingw32-make.exe
-CMake: C:\Program Files\CMake\bin\cmake.exe
+CMake:    C:\Program Files\CMake\bin\cmake.exe
+Standard: C++20 with -Wall -Wextra -Wpedantic -Werror
 ```
 
 ```powershell
@@ -77,68 +41,44 @@ $env:PATH = 'D:\android_project\windows\toolchain\bin;' + $env:PATH
 cmake -S . -B build -G 'MinGW Makefiles' `
   -DCMAKE_CXX_COMPILER='D:/android_project/windows/toolchain/bin/g++.exe' `
   -DCMAKE_MAKE_PROGRAM='D:/android_project/windows/toolchain/bin/mingw32-make.exe'
-
 cmake --build build -j 4
 ctest --test-dir build --output-on-failure
 ```
 
-Core targets are compiled with:
+## Inductive synthesis workflow
 
 ```text
--std=c++20 -Wall -Wextra -Wpedantic -Werror
+Protected project + existing native tests
+  → isolated baseline build
+  → discover eligible implementation stub
+  → derive local variables and constants
+  → create bounded candidate programs
+  → compile + run the project’s own tests per candidate
+  → retain only verified implementation and experience
 ```
 
-## R19 CLI
-
-Use the native R19 path against a protected project and an external workspace:
+Run it through the GDI executable:
 
 ```powershell
-.\build\gdi_intelligence.exe `
-  --foreign-project D:\path\to\protected-project `
-  --workspace D:\gdi-runs\semantic-integration `
-  --semantic-integration-requirement `
-    'Einen gespeicherten Zustand wiederherstellen und beschaedigte Zustandsdaten ablehnen.' `
-  --cmake 'C:\Program Files\CMake\bin\cmake.exe' `
-  --ctest 'C:\Program Files\CMake\bin\ctest.exe' `
-  --r19-execute
+gdi_intelligence --foreign-project D:\path\to\project `
+  --workspace D:\external-workspace `
+  --inductive-synthesize
 ```
 
-Important output fields:
+Optional persistence and budget controls:
 
 ```text
-R19_CAPABILITY=<canonical capability or empty>
-R19_SELECTED_POINT=<source and symbol only when proven>
-R19_TRANSFORMATIONS=<count>
-R19_RUNTIME_TESTS=<count>
-ORIGINAL_UNTOUCHED=YES|NO
-RESULT=COMPLETE|INCOMPLETE|BLOCKED|FAILED
+--inductive-model D:\models\gdi_inductive_experience.gdi
+--inductive-max-candidates 50
 ```
 
-`BLOCKED` is a valid safety result. It means that GDI did not have sufficient general, authorised evidence to modify the project.
+The protected project is never the workspace. The command returns a non-zero result for `BLOCKED` or `FAILED`; generated evidence remains in the external workspace.
 
-## Architecture and evidence
+## Verification
 
-| Layer | Responsibility |
-| --- | --- |
-| Immutable genome | Static loci define capabilities and regulatory authority; the genome is never mutated at runtime. |
-| Semantic engine | Models functions, source provenance, direct calls, input/output/state hints and uncertainty. |
-| Development memory | Stores verified strategy outcomes and evidence independently of the genome. |
-| Native verifier | Uses the discovered project toolchain and actual executable, not a substitute compiler path. |
-| Windows GUI | Displays the current engine build identity and executes the integrated verification backend. |
+`GDIInductiveSynthesisTests` uses two independent CMake projects with different function and parameter names. The first induces and verifies a previously stubbed arithmetic implementation. The second uses persisted experience to prioritise the learned expression family, while still compiling and running its own tests.
 
-Detailed implementation and test evidence is maintained in [GDI_VERIFICATION_REPORT](GDI_VERIFICATION_REPORT), including [R19 language semantics](GDI_VERIFICATION_REPORT/R19_IMPLEMENTATION/LANGUAGE_SEMANTICS.md).
-
-## Repository layout
-
-```text
-apps/                         Native CLI and Windows GUI entry points
-include/gpi/                  Public project-intelligence interfaces
-src/gpi/                      Build contracts, strategies, semantic integration
-src/genome/                   Immutable genomic capability definitions
-tests/                        Native regression and end-to-end tests
-examples/r19_*_semantic/      Hook-free R19 fixtures
-GDI_VERIFICATION_REPORT/      Verification reports and reproducible evidence guidance
-```
+Project reports and reproducible campaign evidence are kept under [`GDI_VERIFICATION_REPORT`](GDI_VERIFICATION_REPORT).
 
 ## License
 

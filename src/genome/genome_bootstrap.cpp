@@ -468,6 +468,14 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
         ,"gpi-operation-v1|transform_semantic_source|16832|SemanticIntegrationPlan|VerifiedSourceTransformation"
         ,"gpi-operation-v1|verify_semantic_runtime|16833|VerifiedSourceTransformation|SemanticRuntimeEvidence"
         ,"gpi-operation-v1|consolidate_semantic_experience|16834|SemanticRuntimeEvidence|SemanticExperience"
+        ,"gpi-operation-v1|train_project_experience_model|16835|ProtectedProjectCorpus|AdaptiveExperienceModel"
+        ,"gpi-operation-v1|derive_counterfactual_hypotheses|16836|RuntimeOracle|HypothesisSet"
+        ,"gpi-operation-v1|execute_isolated_counterfactual|16837|HypothesisSet|VerificationEvidence"
+        ,"gpi-operation-v1|consolidate_negative_experience|16838|VerificationEvidence|AdaptiveExperienceModel"
+        ,"gpi-operation-v1|derive_inductive_expression_grammar|16839|ProjectSyntax|CandidateProgramSet"
+        ,"gpi-operation-v1|execute_counterexample_guided_synthesis|16840|CandidateProgramSet|VerificationEvidence"
+        ,"gpi-operation-v1|verify_induced_algorithm|16841|VerificationEvidence|VerifiedProgramTransformation"
+        ,"gpi-operation-v1|consolidate_inductive_experience|16842|VerifiedProgramTransformation|AdaptiveExperienceModel"
     };
     for (std::size_t i=0;i<researchCapabilities.size();++i) {
         const auto& capability=researchCapabilities[i];
