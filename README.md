@@ -33,7 +33,7 @@ Validated toolchain:
 
 ```text
 Compiler: D:\android_project\windows\toolchain\bin\g++.exe  (GCC 16.1.0)
-CMake:    C:\Program Files\CMake\bin\cmake.exe
+CMake:    C:\Program Files\CMake\bin\cmake.exe`nRuntime:  integrated KR-GCC payload with SHA-256 manifest support
 Standard: C++20 with -Wall -Wextra -Wpedantic -Werror
 ```
 
@@ -74,7 +74,7 @@ Optional persistence and budget controls:
 --compositional-max-candidates 50
 ```
 
-The protected project is never the workspace. Compositional synthesis has a hard 25-minute total time budget. The remaining budget is propagated to configure/build/test processes; expiry returns `BLOCKED` with `compositional_time_budget_exhausted`. The command returns a non-zero result for `BLOCKED` or `FAILED`; generated evidence remains in the external workspace.
+GDI accepts an explicit compiler/runtime selection and propagates its compiler and Make/Ninja runtime paths into isolated CMake builds. This prevents unrelated Visual Studio or MSYS installations from silently replacing the selected contract. The full KR runtime payload is distributed separately from Git source because of its size; its manifest is versioned in `runtime/`.`n`nThe protected project is never the workspace. Compositional synthesis has a hard 25-minute total time budget. The remaining budget is propagated to configure/build/test processes; expiry returns `BLOCKED` with `compositional_time_budget_exhausted`. The command returns a non-zero result for `BLOCKED` or `FAILED`; generated evidence remains in the external workspace.
 
 ## Verification
 

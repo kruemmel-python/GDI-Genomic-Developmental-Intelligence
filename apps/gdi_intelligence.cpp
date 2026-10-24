@@ -145,6 +145,7 @@ int main(int argc,char** argv) {
             synthesis.nativeBuild.msbuildExecutable=msbuildExecutable;
             synthesis.nativeBuild.ninjaExecutable=ninjaExecutable;
             synthesis.nativeBuild.makeExecutable=makeExecutable;
+            synthesis.nativeBuild.cppCompilerOverride=compiler;
             synthesis.nativeBuild.generatorOverride=generatorOverride;
             synthesis.nativeBuild.generatorPlatformOverride=generatorPlatformOverride;
             synthesis.nativeBuild.windowsSdkOverride=windowsSdkOverride;
@@ -282,9 +283,10 @@ int main(int argc,char** argv) {
             if(contract.buildSystem!=genomic::gpi::BuildSystemKind::DirectCompiler) {
                 genomic::gpi::NativeBuildConfig nativeConfig;
                 nativeConfig.originalProject=foreignProjectPath;nativeConfig.isolatedWorkspace=workspace/"native_baseline";
-                nativeConfig.configuration="Release";nativeConfig.timeoutMilliseconds=600000;nativeConfig.runTests=true;
+                nativeConfig.configuration="Release";nativeConfig.timeoutMilliseconds=2400000;nativeConfig.runTests=true;
                 nativeConfig.cmakeExecutable=cmakeExecutable;nativeConfig.ctestExecutable=ctestExecutable;nativeConfig.msbuildExecutable=msbuildExecutable;
                 nativeConfig.ninjaExecutable=ninjaExecutable;nativeConfig.makeExecutable=makeExecutable;
+                nativeConfig.cppCompilerOverride=compiler;
                 nativeConfig.generatorOverride=generatorOverride;nativeConfig.generatorPlatformOverride=generatorPlatformOverride;
                 nativeConfig.windowsSdkOverride=windowsSdkOverride;
                 const auto baseline=genomic::gpi::executeNativeBuild(contract,nativeConfig);

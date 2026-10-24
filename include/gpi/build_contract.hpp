@@ -84,12 +84,14 @@ struct NativeBuildConfig {
     std::filesystem::path originalProject, isolatedWorkspace;
     std::string configuration{"Release"};
     std::size_t timeoutMilliseconds{600000};
+    std::size_t testTimeoutMilliseconds{2400000};
     bool runTests{true};
     std::filesystem::path cmakeExecutable{"cmake"};
     std::filesystem::path ctestExecutable{"ctest"};
     std::filesystem::path msbuildExecutable;
     std::filesystem::path ninjaExecutable{"ninja"};
     std::filesystem::path makeExecutable{"make"};
+    std::filesystem::path cppCompilerOverride;
     std::string generatorOverride;
     std::string generatorPlatformOverride;
     std::string windowsSdkOverride;

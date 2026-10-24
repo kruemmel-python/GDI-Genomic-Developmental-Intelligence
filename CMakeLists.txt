@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.10.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.11.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
