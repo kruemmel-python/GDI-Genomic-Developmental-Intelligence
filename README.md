@@ -16,16 +16,16 @@ GDI never edits an imported project in place. Every attempted change is created 
 | Persistent development experience | Stores successful and failed, provenance-bound attempts and uses them to guide later work. |
 | Adaptive experiments | Tests bounded, observable candidate changes in isolated workspaces and preserves negative evidence. |
 | Inductive expression synthesis | Discovers safe integer return stubs, derives variables/constants from the project, generates candidate expressions, and accepts only candidates proven by the project’s own tests. |
-| Compositional program synthesis | Constructs complete C++ bodies from typed control-flow primitives: branches, loops, mutable local state, reduction, vector traversal, structural recursion and ownership-safe smart-pointer return paths. |
+| Compositional program synthesis | Constructs complete C++ bodies from typed control-flow primitives: branches, loops, mutable local state, reduction, vector traversal, structural recursion and ownership-safe smart-pointer return paths, composed from a typed program grammar. |
 | Joint interface plans | Synthesizes and verifies bounded, atomic plans spanning multiple implementation stubs in one candidate project. |
 
-The generative subsystem is evidence-led. It derives parameter names, supported container/ownership shapes and self-call targets from the imported project. It does not contain project names, function names or a stored target algorithm. Concrete programs are formed during the run, rebuilt and executed against the target project's own tests; successful and failed candidate structures are persisted for later prioritisation.
+The generative subsystem is evidence-led. It derives parameter names, supported container/ownership shapes and self-call targets from the imported project. It does not contain project names, function names, named algorithm templates, or stored target algorithms. Concrete programs are formed during the run, rebuilt and executed against the target project's own tests; successful and failed candidate structures are persisted for later prioritisation.
 
 ## Safety and research boundaries
 
 GDI is fail-closed. Ambiguous integration points, an unbuildable baseline, missing acceptance evidence, unsafe workspaces or an exhausted supported grammar produce a blocked result—not a speculative patch.
 
-The current synthesizer is not a claim of universal program synthesis. Its verified scope covers bounded scalar control flow, `std::vector<int>` traversal, selected `std::unique_ptr<int>` ownership patterns, structural recursion and joint plans over a bounded number of discoverable implementation stubs. Arbitrary object graphs, unconstrained templates, exception protocols, arbitrary natural-language requirements and unbounded architectural search remain unsupported and fail closed.
+The current synthesizer is not a claim of universal algorithm invention. It generates bounded new structures by composing typed language productions, but its grammar and search budget remain finite. Its verified scope covers bounded scalar control flow, `std::vector<int>` traversal, selected `std::unique_ptr<int>` ownership patterns, structural recursion and joint plans over a bounded number of discoverable implementation stubs. Arbitrary object graphs, unconstrained templates, exception protocols, arbitrary natural-language requirements and unbounded architectural search remain unsupported and fail closed.
 
 ## Build
 
@@ -78,7 +78,7 @@ The protected project is never the workspace. Compositional synthesis has a hard
 
 ## Verification
 
-The synthesis fixtures cover arithmetic induction, branches, loops, mutable state reduction, container traversal, recursion, smart-pointer ownership and a joint two-function implementation plan. All acceptance decisions are native compiler and CTest results from isolated project copies.
+The synthesis fixtures cover arithmetic induction, branches, loops, mutable state reduction, container traversal, recursion, smart-pointer ownership, grammar-level independent loop composition, and a joint two-function implementation plan. All acceptance decisions are native compiler and CTest results from isolated project copies.
 
 Project reports and reproducible campaign evidence are kept under [`GDI_VERIFICATION_REPORT`](GDI_VERIFICATION_REPORT).
 

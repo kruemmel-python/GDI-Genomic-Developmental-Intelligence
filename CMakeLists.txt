@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(GenomicCpp20System VERSION 1.9.0 LANGUAGES CXX)
+project(GenomicCpp20System VERSION 1.10.0 LANGUAGES CXX)
 
 # A relocatable Windows GCC toolchain may need DLLs from its own bin directory
 # when the compiler starts cc1plus and the linker. Keep that dependency local to
@@ -67,6 +67,7 @@ set(GENOMIC_SOURCES
     src/gpi/adaptive_experimentation.cpp
     src/gpi/inductive_synthesis.cpp
     src/gpi/compositional_synthesis.cpp
+    src/gpi/generative_program_grammar.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -185,6 +186,9 @@ target_link_libraries(test_inductive_synthesis PRIVATE genomic_core)
 add_executable(test_compositional_synthesis tests/test_compositional_synthesis.cpp)
 target_link_libraries(test_compositional_synthesis PRIVATE genomic_core)
 
+add_executable(test_generative_program_grammar tests/test_generative_program_grammar.cpp)
+target_link_libraries(test_generative_program_grammar PRIVATE genomic_core)
+
 enable_testing()
 
 option(GDI_ENABLE_KR_E2E_TEST "Enable the external KR/Go/Rust/SDL project end-to-end test" OFF)
@@ -229,6 +233,7 @@ add_test(NAME GDIInductiveSynthesisTests COMMAND test_inductive_synthesis
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_inductive_synthesis" "${CMAKE_COMMAND}")
 add_test(NAME GDICompositionalSynthesisTests COMMAND test_compositional_synthesis
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_compositional_synthesis" "${CMAKE_COMMAND}")
+add_test(NAME GDIGenerativeProgramGrammarTests COMMAND test_generative_program_grammar)
 
 add_test(NAME GPIPromptEndToEnd
     COMMAND ${CMAKE_COMMAND}

@@ -2,6 +2,7 @@
 
 #include "gpi/filesystem_safety.hpp"
 #include "gpi/foreign_project_intelligence.hpp"
+#include "gpi/generative_program_grammar.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -80,6 +81,7 @@ struct Stub {
     std::vector<std::string> ownedVectorParameters;
     std::vector<std::string> uniquePointerParameters;
     std::string functionName;
+    std::string pointeeType{"int"};
 };
 
 std::string functionNameBefore(const std::string& source, std::size_t open) {
@@ -139,6 +141,15 @@ std::vector<std::string> parameterNamesContainingBoth(const std::string& paramet
     return result;
 }
 
+std::string uniquePointerPointee(const std::string& parameters) {
+    const auto start = parameters.find("unique_ptr<");
+    if (start == std::string::npos) return "int";
+    const auto typeBegin = start + std::string("unique_ptr<").size();
+    const auto typeEnd = parameters.find('>', typeBegin);
+    if (typeEnd == std::string::npos || typeEnd == typeBegin) return "int";
+    return parameters.substr(typeBegin, typeEnd - typeBegin);
+}
+
 std::vector<Stub> discoverStubs(const std::filesystem::path& root) {
     std::vector<Stub> result;
     for (const auto& entry : std::filesystem::recursive_directory_iterator(root)) {
@@ -150,12 +161,16 @@ std::vector<Stub> discoverStubs(const std::filesystem::path& root) {
             const auto brace = source.rfind('{', position);
             const auto close = source.rfind(')', brace);
             const auto open = close == std::string::npos ? std::string::npos : matchingOpenParen(source, close);
-            if (brace != std::string::npos && open != std::string::npos && source.substr(open, brace - open).find("main") == std::string::npos) {
+            const auto name = open == std::string::npos ? std::string{} : functionNameBefore(source, open);
+            const bool controlScope = name == "if" || name == "for" || name == "while" || name == "switch" || name == "catch";
+            if (brace != std::string::npos && open != std::string::npos && !controlScope
+                && source.substr(open, brace - open).find("main") == std::string::npos) {
                 const auto parameterText = source.substr(open + 1, close - open - 1);
                 const auto parameters = parameterNames(parameterText);
                 if (!parameters.empty()) result.push_back({entry.path(), position, position + marker.size(), parameters,
                     vectorParameterNames(parameterText), parameterNamesContainingBoth(parameterText, "vector", "unique_ptr")
-                        , parameterNamesContaining(parameterText, "unique_ptr"), functionNameBefore(source, open)});
+                        , parameterNamesContaining(parameterText, "unique_ptr"), name,
+                        uniquePointerPointee(parameterText)});
             }
             position += marker.size();
         }
@@ -177,101 +192,29 @@ void remember(const std::filesystem::path& store, const std::string& status, con
     output << "GDIIS2|" << status << "|compositional_control_flow|" << program << '\n';
 }
 
-std::vector<std::string> branchPrograms(const Stub& stub) {
-    std::vector<std::string> result;
-    for (const auto& left : stub.parameters) {
-        for (const auto& right : stub.parameters) {
-            if (left == right) continue;
-            result.push_back("if (" + left + " < " + right + ") { return " + left + "; } return " + left + " - " + right + ";");
-            result.push_back("if (" + left + " > " + right + ") { return " + left + " - " + right + "; } return " + left + ";");
-        }
-    }
-    return result;
-}
-
-std::vector<std::string> loopPrograms(const Stub& stub) {
-    std::vector<std::string> result;
-    for (const auto& bound : stub.parameters) {
-        result.push_back("int result = 0; for (int index = 0; index < " + bound + "; ++index) { result += index; } return result;");
-        result.push_back("int result = 0; for (int index = 1; index <= " + bound + "; ++index) { result += index; } return result;");
-        for (const auto& operand : stub.parameters) {
-            if (operand == bound) continue;
-            result.push_back("int result = 1; for (int index = 0; index < " + bound + "; ++index) { result *= " + operand + "; } return result;");
-        }
-    }
-    return result;
-}
-
-std::vector<std::string> reductionPrograms(const Stub& stub) {
-    std::vector<std::string> result;
-    for (const auto& left : stub.parameters) {
-        for (const auto& right : stub.parameters) {
-            if (left == right) continue;
-            for (const std::string operation : {"%", "-", "+"}) {
-                for (const std::string returned : {"state0", "state1"}) {
-                    result.push_back(
-                        "int state0 = " + left + "; int state1 = " + right
-                        + "; while (state1 != 0) { int next = state0 " + operation
-                        + " state1; state0 = state1; state1 = next; } return " + returned + ";");
-                }
-            }
-        }
-    }
-    return result;
-}
-
-std::vector<std::string> vectorPrograms(const Stub& stub) {
-    std::vector<std::string> result;
-    for (const auto& container : stub.ownedVectorParameters) {
-        result.push_back("int result = 0; for (const auto& item : " + container + ") { if (item) { result += *item; } } return result;");
-    }
-    for (const auto& container : stub.vectorParameters) {
-        result.push_back("int result = 0; for (const int item : " + container + ") { result += item; } return result;");
-        result.push_back("int result = 0; for (const int item : " + container + ") { if (item > 0) { ++result; } } return result;");
-    }
-    return result;
-}
-
-std::vector<std::string> uniquePointerPrograms(const Stub& stub) {
-    std::vector<std::string> result;
-    for (const auto& pointer : stub.uniquePointerParameters) {
-        result.push_back("if (" + pointer + ") { return std::make_unique<int>(*" + pointer + "); } return nullptr;");
-    }
-    return result;
-}
-
-std::vector<std::string> recursivePrograms(const Stub& stub) {
-    if (stub.parameters.size() != 1 || stub.functionName.empty() || !stub.vectorParameters.empty()) return {};
-    const auto& value = stub.parameters.front();
-    return {
-        "if (" + value + " <= 1) { return 1; } return " + value + " * " + stub.functionName + "(" + value + " - 1);",
-        "if (" + value + " <= 1) { return " + value + "; } return " + stub.functionName + "(" + value + " - 1) + " + stub.functionName + "(" + value + " - 2);"
-    };
-}
-
 std::vector<std::string> programs(const Stub& stub, const bool experience) {
-    auto branches = branchPrograms(stub);
-    auto loops = loopPrograms(stub);
-    auto reductions = reductionPrograms(stub);
-    auto vectors = vectorPrograms(stub);
-    auto pointers = uniquePointerPrograms(stub);
-    auto recursions = recursivePrograms(stub);
-    if (!pointers.empty() && stub.vectorParameters.empty()) return pointers;
-    if (!vectors.empty()) {
-        vectors.insert(vectors.end(), branches.begin(), branches.end());
-        vectors.insert(vectors.end(), loops.begin(), loops.end());
-        return vectors;
+    GenerativeProgramContext context;
+    context.scalarValues = stub.parameters;
+    for (const auto& vector : stub.vectorParameters) {
+        if (std::find(stub.ownedVectorParameters.begin(), stub.ownedVectorParameters.end(), vector)
+            == stub.ownedVectorParameters.end()) context.integerVectors.push_back(vector);
     }
+    context.ownedIntegerVectors = stub.ownedVectorParameters;
+    if (stub.vectorParameters.empty()) context.uniquePointers = stub.uniquePointerParameters;
+    context.pointeeType = stub.pointeeType;
+    context.selfFunction = stub.functionName;
+    auto generated = GenerativeProgramGrammar::enumerate(context, 50);
     if (experience) {
-        branches.insert(branches.end(), loops.begin(), loops.end());
-        branches.insert(branches.end(), reductions.begin(), reductions.end());
-        branches.insert(branches.end(), recursions.begin(), recursions.end());
-        return branches;
+        const auto structuralScore = [](const std::string& program) {
+            return static_cast<int>(program.find("for (") != std::string::npos)
+                + static_cast<int>(program.find("while (") != std::string::npos)
+                + static_cast<int>(program.find("if (") != std::string::npos);
+        };
+        std::stable_sort(generated.begin(), generated.end(), [&structuralScore](const std::string& left, const std::string& right) {
+            return structuralScore(left) > structuralScore(right);
+        });
     }
-    loops.insert(loops.end(), branches.begin(), branches.end());
-    loops.insert(loops.end(), reductions.begin(), reductions.end());
-    loops.insert(loops.end(), recursions.begin(), recursions.end());
-    return loops;
+    return generated;
 }
 
 } // namespace
@@ -333,7 +276,10 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
             std::sort(stubs.begin(), stubs.end(), [](const Stub& left, const Stub& right) {
                 return left.source == right.source ? left.begin < right.begin : left.source.string() < right.source.string();
             });
-            using Patch = std::pair<const Stub*, std::string>;
+            struct Patch {
+                Stub stub;
+                std::string program;
+            };
             using Plan = std::vector<Patch>;
             std::vector<Plan> plans(1);
             for (const auto& stub : stubs) {
@@ -343,7 +289,7 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
                     for (const auto& program : choices) {
                         if (next.size() == config.maxCandidates) break;
                         auto expanded = plan;
-                        expanded.emplace_back(&stub, program);
+                        expanded.push_back({stub, program});
                         next.push_back(std::move(expanded));
                     }
                     if (next.size() == config.maxCandidates) break;
@@ -366,17 +312,17 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
                 std::map<std::filesystem::path, std::vector<const Patch*>> perFile;
                 std::string program;
                 for (const auto& patch : plan) {
-                    perFile[std::filesystem::relative(patch.first->source, original)].push_back(&patch);
+                    perFile[std::filesystem::relative(patch.stub.source, original)].push_back(&patch);
                     if (!program.empty()) program += "\n---\n";
-                    program += patch.second;
+                    program += patch.program;
                 }
                 for (auto& [relative, patches] : perFile) {
                     std::sort(patches.begin(), patches.end(), [](const Patch* left, const Patch* right) {
-                        return left->first->begin > right->first->begin;
+                        return left->stub.begin > right->stub.begin;
                     });
                     auto source = readFile(candidate / relative);
                     for (const auto* patch : patches) {
-                        source.replace(patch->first->begin, patch->first->end - patch->first->begin, patch->second);
+                        source.replace(patch->stub.begin, patch->stub.end - patch->stub.begin, patch->program);
                     }
                     writeFile(candidate / relative, source);
                 }
@@ -385,7 +331,7 @@ CompositionalSynthesisResult runCompositionalSynthesis(const CompositionalSynthe
                 candidateConfig.isolatedWorkspace = workspace / ("candidate_build_" + std::to_string(count));
                 candidateConfig.timeoutMilliseconds = timeout;
                 const auto evidence = executeNativeBuild(discoverBuildContract(candidate), candidateConfig);
-                const auto relative = std::filesystem::relative(plan.front().first->source, original);
+                const auto relative = std::filesystem::relative(plan.front().stub.source, original);
                 result.attempts.push_back({relative, program, evidence.built, evidence.testsPassed});
                 if (evidence.built && evidence.testsPassed) {
                     result.developedProject = candidate;
