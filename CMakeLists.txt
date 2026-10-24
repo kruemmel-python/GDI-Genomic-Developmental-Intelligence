@@ -66,6 +66,7 @@ set(GENOMIC_SOURCES
     src/gpi/autonomous_semantic_integration.cpp
     src/gpi/adaptive_experimentation.cpp
     src/gpi/inductive_synthesis.cpp
+    src/gpi/compositional_synthesis.cpp
     src/cpp20/cpp20_lexicon.cpp
     src/cpp20/cpp20_preprocessor.cpp
     src/cpp20/genomic_expression_grammar.cpp
@@ -181,6 +182,9 @@ target_link_libraries(test_adaptive_experimentation PRIVATE genomic_core)
 add_executable(test_inductive_synthesis tests/test_inductive_synthesis.cpp)
 target_link_libraries(test_inductive_synthesis PRIVATE genomic_core)
 
+add_executable(test_compositional_synthesis tests/test_compositional_synthesis.cpp)
+target_link_libraries(test_compositional_synthesis PRIVATE genomic_core)
+
 enable_testing()
 
 option(GDI_ENABLE_KR_E2E_TEST "Enable the external KR/Go/Rust/SDL project end-to-end test" OFF)
@@ -223,6 +227,8 @@ add_test(NAME GDIAdaptiveExperimentationTests COMMAND test_adaptive_experimentat
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_adaptive_experimentation" "${CMAKE_COMMAND}")
 add_test(NAME GDIInductiveSynthesisTests COMMAND test_inductive_synthesis
     "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_inductive_synthesis" "${CMAKE_COMMAND}")
+add_test(NAME GDICompositionalSynthesisTests COMMAND test_compositional_synthesis
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/gdi_compositional_synthesis" "${CMAKE_COMMAND}")
 
 add_test(NAME GPIPromptEndToEnd
     COMMAND ${CMAKE_COMMAND}

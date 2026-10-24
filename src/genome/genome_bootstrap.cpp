@@ -476,6 +476,10 @@ BootstrappedSystem GenomeBootstrap::buildCompleteSystem() {
         ,"gpi-operation-v1|execute_counterexample_guided_synthesis|16840|CandidateProgramSet|VerificationEvidence"
         ,"gpi-operation-v1|verify_induced_algorithm|16841|VerificationEvidence|VerifiedProgramTransformation"
         ,"gpi-operation-v1|consolidate_inductive_experience|16842|VerifiedProgramTransformation|AdaptiveExperienceModel"
+        ,"gpi-operation-v1|derive_compositional_program_space|16843|ProjectSyntax|CompositionalCandidateSet"
+        ,"gpi-operation-v1|generate_control_flow_hypotheses|16844|CompositionalCandidateSet|ProgramHypothesis"
+        ,"gpi-operation-v1|verify_compositional_program|16845|ProgramHypothesis|VerificationEvidence"
+        ,"gpi-operation-v1|consolidate_compositional_experience|16846|VerificationEvidence|AdaptiveExperienceModel"
     };
     for (std::size_t i=0;i<researchCapabilities.size();++i) {
         const auto& capability=researchCapabilities[i];
